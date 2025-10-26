@@ -1,6 +1,7 @@
 use bevy::{
     ecs::{lifecycle::HookContext, world::DeferredWorld},
     prelude::*,
+    window::PrimaryWindow,
 };
 use leafwing_input_manager::{plugin::InputManagerSystem, prelude::*};
 const SNAKE_SIZE: f32 = 25.0;
@@ -15,7 +16,7 @@ fn main() {
     app.add_systems(Startup, spawn_snake);
     app.insert_resource(Time::<Fixed>::from_hz(5.));
     app.add_systems(PreUpdate, control_snake.after(InputManagerSystem::Update));
-    app.add_systems(FixedUpdate, move_snake);
+    app.add_systems(FixedUpdate, (move_snake, update_path, wrap_snake).chain());
     app.init_resource::<Snake>();
     app.run();
 }
@@ -72,7 +73,7 @@ fn spawn_snake(mut commands: Commands) {
     ));
 }
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 enum Facing {
     Up,
     Down,
@@ -91,14 +92,29 @@ fn move_snake(mut snake: Query<(&mut Transform, &Facing)>) {
     }
 }
 
-fn control_snake(input: Res<ActionState<SnakeAction>>, mut query: Single<&mut Facing>) {
-    println!("{:?}", input.get_just_pressed());
+fn update_path(mut segments: Query<&mut Facing, With<Segment>>, snake: Res<Snake>) {
+    if snake.len() < 2 {
+        return;
+    }
+    for i in (1..snake.len()).rev() {
+        let previous_facing = *segments.get(snake[i - 1]).unwrap();
+        let mut current_facing = segments.get_mut(snake[i]).unwrap();
+        *current_facing = previous_facing;
+    }
+}
+
+fn control_snake(
+    input: Res<ActionState<SnakeAction>>,
+    mut query: Query<&mut Facing>,
+    snake: Res<Snake>,
+) {
+    let mut head = query.get_mut(snake[0]).unwrap();
     for action in input.get_just_pressed() {
         match action {
-            SnakeAction::MoveUp => **query = Facing::Up,
-            SnakeAction::MoveDown => **query = Facing::Down,
-            SnakeAction::MoveLeft => **query = Facing::Left,
-            SnakeAction::MoveRight => **query = Facing::Right,
+            SnakeAction::MoveUp => *head = Facing::Up,
+            SnakeAction::MoveDown => *head = Facing::Down,
+            SnakeAction::MoveLeft => *head = Facing::Left,
+            SnakeAction::MoveRight => *head = Facing::Right,
             _ => {}
         }
     }
@@ -123,5 +139,25 @@ struct Segment;
 impl Segment {
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
         world.resource_mut::<Snake>().push(ctx.entity);
+    }
+}
+
+fn wrap_snake(
+    mut segments: Query<&mut Transform, With<Segment>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+) {
+    for mut segment in &mut segments {
+        if segment.translation.x > window.width() / 2.0 {
+            segment.translation.x -= window.width();
+        }
+        if segment.translation.x < -window.width() / 2.0 {
+            segment.translation.x += window.width();
+        }
+        if segment.translation.y > window.height() / 2.0 {
+            segment.translation.y -= window.height();
+        }
+        if segment.translation.y < -window.height() / 2.0 {
+            segment.translation.y += window.height();
+        }
     }
 }

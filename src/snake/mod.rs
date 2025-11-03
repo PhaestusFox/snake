@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
 };
 
+mod movement;
 mod rendering;
 
 const SNAKE_SIZE: f32 = 32.0;
@@ -16,7 +17,7 @@ pub struct SnakePlugin;
 impl Plugin for SnakePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(rendering::SnakeRenderPlugin)
-            .add_systems(FixedUpdate, (move_snake, update_path).chain())
+            .add_plugins(movement::plugin)
             .add_systems(PreUpdate, user_input)
             .init_resource::<SnakeSize>();
     }
@@ -48,39 +49,13 @@ impl FacingDirection {
         }
     }
 
-    pub fn to_rotation(self) -> f32 {
+    pub fn to_rotation(self) -> Quat {
         match self {
-            FacingDirection::Left => 0.0,
-            FacingDirection::Up => -std::f32::consts::FRAC_PI_2,
-            FacingDirection::Right => std::f32::consts::PI,
-            FacingDirection::Down => std::f32::consts::FRAC_PI_2,
-            FacingDirection::None => 0.0,
-        }
-    }
-}
-
-fn move_snake(
-    mut segment: Populated<(&mut Transform, &FacingDirection, Option<&SnakeSize>)>,
-    fallback_size: Res<SnakeSize>,
-) {
-    for (mut transform, direction, size) in &mut segment {
-        let size = size.unwrap_or(&fallback_size);
-        match direction {
-            FacingDirection::Right => transform.translation.x += **size,
-            FacingDirection::Down => transform.translation.y -= **size,
-            FacingDirection::Left => transform.translation.x -= **size,
-            FacingDirection::Up => transform.translation.y += **size,
-            FacingDirection::None => {}
-        }
-    }
-}
-
-fn update_path(snakes: Query<&Snake>, mut facing: Query<&mut FacingDirection>) {
-    for snake in snakes.iter() {
-        for segments in snake.windows(2).rev() {
-            if let Ok([mut dir, frount]) = facing.get_many_mut([segments[1], segments[0]]) {
-                *dir = *frount;
-            }
+            FacingDirection::Right => Quat::IDENTITY,
+            FacingDirection::Down => Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
+            FacingDirection::Left => Quat::from_rotation_z(std::f32::consts::PI),
+            FacingDirection::Up => Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
+            FacingDirection::None => Quat::IDENTITY,
         }
     }
 }

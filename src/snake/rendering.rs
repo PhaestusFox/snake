@@ -74,36 +74,16 @@ fn update_snake_texture(
     textures: Res<SnakeTextureHandles>,
 ) {
     for (snake, snake_type) in &snakes {
-        let Some(textures) = textures.snakes.get(snake_type) else {
+        let Some(snake_images) = textures.snakes.get(snake_type) else {
             warn!("{:?} textures not loaded yet", snake_type);
             continue;
         };
         if let Some(head) = snake.first() {
             if let Ok((mut sprite, mut pos, direction)) = segments.get_mut(*head) {
-                sprite.image = textures.head.clone();
-                match direction {
-                    FacingDirection::Right => {
-                        pos.rotation = Quat::from_rotation_z(0.);
-                        sprite.flip_x = false;
-                        sprite.flip_y = false;
-                    }
-                    FacingDirection::Down => {
-                        pos.rotation = Quat::from_rotation_z(std::f32::consts::FRAC_PI_2);
-                        sprite.flip_x = true;
-                        sprite.flip_y = true;
-                    }
-                    FacingDirection::Left => {
-                        pos.rotation = Quat::from_rotation_z(0.);
-                        sprite.flip_x = true;
-                        sprite.flip_y = false;
-                    }
-                    FacingDirection::Up => {
-                        pos.rotation = Quat::from_rotation_z(std::f32::consts::FRAC_PI_2);
-                        sprite.flip_x = false;
-                        sprite.flip_y = true;
-                    }
-                    FacingDirection::None => {}
-                }
+                sprite.image = snake_images.head.clone();
+                pos.rotation = direction.to_rotation();
+                sprite.flip_x = false;
+                sprite.flip_y = false;
             } else {
                 warn!("Failed to get head segment sprite");
             }
@@ -131,14 +111,13 @@ fn update_snake_texture(
             && let Some(tail) = snake.last()
             && let Some(second_last) = snake.get(snake.len() - 2)
         {
-            if let Ok([(mut sprite, mut pos, _), (_, other, _)]) =
+            if let Ok([(mut sprite, mut pos, direction), (_, other, _)]) =
                 segments.get_many_mut([*tail, *second_last])
             {
-                let tail = FacingDirection::moving(pos.translation, other.translation);
-                pos.rotation = Quat::from_rotation_z(tail.to_rotation());
+                pos.rotation = direction.to_rotation();
                 sprite.flip_x = false;
                 sprite.flip_y = false;
-                sprite.image = textures.tail.clone();
+                sprite.image = snake_images.tail.clone();
             } else {
                 warn!("Failed to get tail segment sprite");
             }

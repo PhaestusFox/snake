@@ -8,9 +8,9 @@ mod rendering;
 
 const SNAKE_SIZE: f32 = 32.0;
 
-#[derive(Component, Deref, DerefMut, Default)]
+#[derive(Component)]
 #[require(Transform, SnakeType, Visibility)]
-pub struct Snake(Vec<Entity>);
+pub struct Snake;
 
 pub struct SnakePlugin;
 
@@ -34,21 +34,6 @@ pub enum FacingDirection {
 }
 
 impl FacingDirection {
-    pub fn moving(front: Vec3, back: Vec3) -> Self {
-        let dir = front - back;
-        if dir.x.abs() > dir.y.abs() {
-            if dir.x > 0.0 {
-                FacingDirection::Right
-            } else {
-                FacingDirection::Left
-            }
-        } else if dir.y > 0.0 {
-            FacingDirection::Up
-        } else {
-            FacingDirection::Down
-        }
-    }
-
     pub fn to_rotation(self) -> Quat {
         match self {
             FacingDirection::Right => Quat::IDENTITY,
@@ -58,29 +43,36 @@ impl FacingDirection {
             FacingDirection::None => Quat::IDENTITY,
         }
     }
-}
 
-fn user_input(
-    snakes: Query<&Snake>,
-    mut facing: Query<&mut FacingDirection>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
-    for snake in snakes.iter() {
-        if let Ok(mut dir) = facing.get_mut(snake[0]) {
-            if keys.pressed(KeyCode::KeyD) {
-                *dir = FacingDirection::Right;
-            } else if keys.pressed(KeyCode::KeyS) {
-                *dir = FacingDirection::Down;
-            } else if keys.pressed(KeyCode::KeyA) {
-                *dir = FacingDirection::Left;
-            } else if keys.pressed(KeyCode::KeyW) {
-                *dir = FacingDirection::Up;
-            }
+    pub fn to_vec(self) -> Vec3 {
+        match self {
+            FacingDirection::Right => Vec3::new(1.0, 0.0, 0.0),
+            FacingDirection::Down => Vec3::new(0.0, -1.0, 0.0),
+            FacingDirection::Left => Vec3::new(-1.0, 0.0, 0.0),
+            FacingDirection::Up => Vec3::new(0.0, 1.0, 0.0),
+            FacingDirection::None => Vec3::ZERO,
         }
     }
 }
 
-#[derive(Component)]
+fn user_input(
+    mut snakes: Query<&mut FacingDirection, With<Snake>>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    for mut facing in snakes.iter_mut() {
+        if keys.pressed(KeyCode::KeyD) {
+            *facing = FacingDirection::Right;
+        } else if keys.pressed(KeyCode::KeyS) {
+            *facing = FacingDirection::Down;
+        } else if keys.pressed(KeyCode::KeyA) {
+            *facing = FacingDirection::Left;
+        } else if keys.pressed(KeyCode::KeyW) {
+            *facing = FacingDirection::Up;
+        }
+    }
+}
+
+#[derive(Component, Default)]
 #[component(on_add = Self::on_add)]
 #[require(Transform, FacingDirection, Sprite)]
 pub struct SnakeSegment;
@@ -88,23 +80,35 @@ pub struct SnakeSegment;
 impl SnakeSegment {
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
         if let Some(&ChildOf(parent)) = world.get::<ChildOf>(ctx.entity) {
-            if let Some(mut snake) = world.get_mut::<Snake>(parent) {
-                let pre = snake.last().cloned();
-                snake.push(ctx.entity);
-                if let Some(pre) = pre
-                    && let Some(pos) = world.get::<Transform>(pre).copied()
-                    && let Some(mut seg_transform) = world.get_mut::<Transform>(ctx.entity)
-                {
-                    seg_transform.translation = pos.translation;
-                }
-            }
-            if let Some(snake_type) = world.get::<SnakeType>(parent).copied()
-                && let Some(mut seg_type) = world.get_mut::<SnakeType>(ctx.entity)
-            {
-                *seg_type = snake_type;
-            }
+            if world.get::<Snake>(parent).is_none() {
+                warn!("Added SnakeSegment is not a child of a Snake entity; self destructing now");
+                world.commands().entity(ctx.entity).despawn();
+                return;
+            };
+            println!("I is {:?}", ctx.entity);
+            println!("my parent is {:?}", parent);
+
+            // let sibling = world
+            //     .get::<Children>(parent)
+            //     .expect("We are a child so it must have Children");
+            // if let Some(pre) = sibling.last()
+            //     && let Some(pos) = world.get::<Transform>(*pre).copied()
+            //     && let Some(mut seg_transform) = world.get_mut::<Transform>(ctx.entity)
+            // {
+            //     seg_transform.translation = pos.translation;
+            // }
         } else {
-            warn!("Added SnakeSegment is not a child of a Snake entity");
+            info!(
+                "SnakeSegment added to entity that is not a child of a Snake;\nMitosis ACTIVATED;\nspawning new Snake;"
+            );
+            let transform = world
+                .get::<Transform>(ctx.entity)
+                .cloned()
+                .unwrap_or_default();
+            world
+                .commands()
+                .spawn((Snake, transform))
+                .add_child(ctx.entity);
         };
     }
 }

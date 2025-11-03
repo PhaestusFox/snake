@@ -69,46 +69,51 @@ impl SnakePieceIndices {
 }
 
 fn update_snake_texture(
-    snakes: Query<(&Snake, &SnakeType)>,
+    snakes: Query<(Entity, &SnakeType, &Children), With<Snake>>,
     mut segments: Populated<(&mut Sprite, &mut Transform, &FacingDirection)>,
     textures: Res<SnakeTextureHandles>,
 ) {
-    for (snake, snake_type) in &snakes {
+    for (root, snake_type, body) in &snakes {
         let Some(snake_images) = textures.snakes.get(snake_type) else {
             warn!("{:?} textures not loaded yet", snake_type);
             continue;
         };
-        if let Some(head) = snake.first() {
-            if let Ok((mut sprite, mut pos, direction)) = segments.get_mut(*head) {
-                sprite.image = snake_images.head.clone();
-                pos.rotation = direction.to_rotation();
-                sprite.flip_x = false;
-                sprite.flip_y = false;
-            } else {
-                warn!("Failed to get head segment sprite");
+        if body.is_empty() {
+            warn!("Snake {:?} has no segments", root);
+            continue;
+        }
+        if let Ok((mut sprite, mut pos, direction)) = segments.get_mut(body[0]) {
+            sprite.image = snake_images.head.clone();
+            pos.rotation = direction.to_rotation();
+            sprite.flip_x = false;
+            sprite.flip_y = false;
+        } else {
+            warn!("Failed to get head segment sprite");
+        }
+        if body.len() > 2 {
+            for window in body.windows(2).skip(1) {
+                let Ok([(mut s, mut main, head), (.., tail)]) =
+                    segments.get_many_mut([window[0], window[1]])
+                else {
+                    warn!("Failed to get middle segment sprite");
+                    continue;
+                };
+                // let head = FacingDirection::moving(pre.translation, main.translation);
+                // let tail = FacingDirection::moving(next.translation, main.translation);
+                let connection = Connection::new(*head, *tail);
+                if connection.straight {
+                    s.image = snake_images.body_straight.clone();
+                } else {
+                    s.image = snake_images.body_curve.clone();
+                }
+                main.rotation = Quat::from_rotation_z(connection.rotation);
+                s.flip_y = connection.flip_y;
+                s.flip_x = connection.flip_x;
             }
         }
-        for window in snake.windows(3) {
-            let Ok([_, (mut s, mut main, head), (.., tail)]) =
-                segments.get_many_mut([window[0], window[1], window[2]])
-            else {
-                warn!("Failed to get middle segment sprite");
-                continue;
-            };
-            // let head = FacingDirection::moving(pre.translation, main.translation);
-            // let tail = FacingDirection::moving(next.translation, main.translation);
-            let connection = Connection::new(*head, *tail);
-            if connection.straight {
-                s.image = snake_images.body_straight.clone();
-            } else {
-                s.image = snake_images.body_curve.clone();
-            }
-            main.rotation = Quat::from_rotation_z(connection.rotation);
-            s.flip_y = connection.flip_y;
-            s.flip_x = connection.flip_x;
-        }
-        if snake.len() > 1
-            && let Some(tail) = snake.last()
+
+        if body.len() > 1
+            && let Some(tail) = body.last()
         {
             if let Ok((mut sprite, mut pos, direction)) = segments.get_mut(*tail) {
                 pos.rotation = direction.to_rotation();
@@ -124,7 +129,10 @@ fn update_snake_texture(
 
 fn update_snake_size(
     mut segments: Query<(&mut Sprite, &SnakeSize), Changed<SnakeSize>>,
-    mut fallback_segments: Query<&mut Sprite, (Without<SnakeSize>, With<SnakeSegment>)>,
+    mut fallback_segments: Query<
+        &mut Sprite,
+        (Without<SnakeSize>, Or<(With<SnakeSegment>, With<Snake>)>),
+    >,
     fallback_size: Res<SnakeSize>,
 ) {
     for (mut sprite, size) in &mut segments {

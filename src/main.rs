@@ -35,12 +35,12 @@ fn spawn_camera(mut commands: Commands) {
 fn spawn_new_snake(mut commands: Commands) {
     commands
         .spawn((
-            snake::Snake::default(),
+            snake::Snake,
             snake::SnakeType::BlueArrow,
             Transform::default(),
-            GlobalTransform::default(),
+            FacingDirection::Right,
         ))
-        .with_child((snake::SnakeSegment, FacingDirection::Right))
+        .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))

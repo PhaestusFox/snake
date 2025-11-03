@@ -2,7 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 use strum::IntoEnumIterator;
 
 use super::SnakeType;
-use crate::snake::{FacingDirection, Snake, SnakeSegment, SnakeSize};
+use crate::snake::{FacingDirection, Snake, SnakeSize};
 
 pub struct SnakeRenderPlugin;
 
@@ -128,19 +128,26 @@ fn update_snake_texture(
 }
 
 fn update_snake_size(
-    mut segments: Query<(&mut Sprite, &SnakeSize), Changed<SnakeSize>>,
-    mut fallback_segments: Query<
-        &mut Sprite,
-        (Without<SnakeSize>, Or<(With<SnakeSegment>, With<Snake>)>),
-    >,
+    mut snakes: Query<(&Children, &SnakeSize), Changed<SnakeSize>>,
+    mut fallback_segments: Query<&Children, (Without<SnakeSize>, With<Snake>)>,
+    mut sprites: Query<&mut Sprite>,
     fallback_size: Res<SnakeSize>,
 ) {
-    for (mut sprite, size) in &mut segments {
-        sprite.custom_size = Some(Vec2::splat(**size));
+    for (body, size) in &mut snakes {
+        let size = **size;
+        for segment in body.iter() {
+            if let Ok(mut sprite) = sprites.get_mut(segment) {
+                sprite.custom_size = Some(Vec2::splat(size));
+            }
+        }
     }
     if fallback_size.is_changed() {
-        for mut sprite in &mut fallback_segments {
-            sprite.custom_size = Some(Vec2::splat(**fallback_size));
+        for snake in &mut fallback_segments {
+            for segment in snake.iter() {
+                if let Ok(mut sprite) = sprites.get_mut(segment) {
+                    sprite.custom_size = Some(Vec2::splat(**fallback_size));
+                }
+            }
         }
     }
 }

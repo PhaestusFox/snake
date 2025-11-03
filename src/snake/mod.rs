@@ -83,10 +83,7 @@ impl SnakeSegment {
             if world.get::<Snake>(parent).is_none() {
                 warn!("Added SnakeSegment is not a child of a Snake entity; self destructing now");
                 world.commands().entity(ctx.entity).despawn();
-                return;
             };
-            println!("I is {:?}", ctx.entity);
-            println!("my parent is {:?}", parent);
 
             // let sibling = world
             //     .get::<Children>(parent)
@@ -108,7 +105,8 @@ impl SnakeSegment {
             world
                 .commands()
                 .spawn((Snake, transform))
-                .add_child(ctx.entity);
+                .add_child(ctx.entity)
+                .with_child(SnakeSegment);
         };
     }
 }

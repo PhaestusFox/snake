@@ -57,16 +57,6 @@ impl FacingDirection {
             FacingDirection::None => 0.0,
         }
     }
-
-    pub fn to_vec(self) -> Vec3 {
-        match self {
-            FacingDirection::Right => Vec3::new(1.0, 0.0, 0.0),
-            FacingDirection::Down => Vec3::new(0.0, -1.0, 0.0),
-            FacingDirection::Left => Vec3::new(-1.0, 0.0, 0.0),
-            FacingDirection::Up => Vec3::new(0.0, 1.0, 0.0),
-            FacingDirection::None => Vec3::ZERO,
-        }
-    }
 }
 
 fn move_snake(

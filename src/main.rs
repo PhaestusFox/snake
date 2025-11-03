@@ -1,4 +1,4 @@
-use bevy::{app::FixedMain, ecs::world, prelude::*};
+use bevy::{app::FixedMain, prelude::*};
 
 use crate::snake::FacingDirection;
 
@@ -60,10 +60,8 @@ fn toggle_single_step(input: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Vi
     if input.just_pressed(KeyCode::F12) {
         if time.relative_speed() < 0.1 {
             time.set_relative_speed(1.0);
-            info!("Disabled single-step mode");
         } else {
             time.set_relative_speed(0.0);
-            info!("Enabled single-step mode");
         }
     }
 }

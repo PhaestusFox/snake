@@ -1,9 +1,4 @@
-use bevy::{
-    asset::LoadedFolder,
-    ecs::{lifecycle::HookContext, world::DeferredWorld},
-    platform::collections::HashMap,
-    prelude::*,
-};
+use bevy::{asset::LoadedFolder, platform::collections::HashMap, prelude::*};
 use strum::IntoEnumIterator;
 
 use super::SnakeType;

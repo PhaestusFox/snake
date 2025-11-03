@@ -156,7 +156,7 @@ impl SnakeTextureHandles {
 impl FromWorld for SnakeTextureHandles {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();
-        let texture_handles = asset_server.load_folder("no_share/BattleSnake/snakes/32x32px_split");
+        let texture_handles = asset_server.load_folder("BattleSnake/snakes/32x32px_split");
         SnakeTextureHandles {
             loading: Some(texture_handles),
             loaded: HashMap::new(),

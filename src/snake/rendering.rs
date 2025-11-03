@@ -89,19 +89,19 @@ fn update_snake_texture(
             }
         }
         for window in snake.windows(3) {
-            let Ok([(_, pre, _), (mut s, mut main, _), (_, next, _)]) =
+            let Ok([_, (mut s, mut main, head), (.., tail)]) =
                 segments.get_many_mut([window[0], window[1], window[2]])
             else {
                 warn!("Failed to get middle segment sprite");
                 continue;
             };
-            let head = FacingDirection::moving(pre.translation, main.translation);
-            let tail = FacingDirection::moving(next.translation, main.translation);
-            let connection = Connection::new(head, tail);
+            // let head = FacingDirection::moving(pre.translation, main.translation);
+            // let tail = FacingDirection::moving(next.translation, main.translation);
+            let connection = Connection::new(*head, *tail);
             if connection.straight {
-                s.image = textures.body_straight.clone();
+                s.image = snake_images.body_straight.clone();
             } else {
-                s.image = textures.body_curve.clone();
+                s.image = snake_images.body_curve.clone();
             }
             main.rotation = Quat::from_rotation_z(connection.rotation);
             s.flip_y = connection.flip_y;
@@ -109,11 +109,8 @@ fn update_snake_texture(
         }
         if snake.len() > 1
             && let Some(tail) = snake.last()
-            && let Some(second_last) = snake.get(snake.len() - 2)
         {
-            if let Ok([(mut sprite, mut pos, direction), (_, other, _)]) =
-                segments.get_many_mut([*tail, *second_last])
-            {
+            if let Ok((mut sprite, mut pos, direction)) = segments.get_mut(*tail) {
                 pos.rotation = direction.to_rotation();
                 sprite.flip_x = false;
                 sprite.flip_y = false;
@@ -179,73 +176,73 @@ struct Connection {
 impl Connection {
     fn new(next: FacingDirection, prev: FacingDirection) -> Self {
         match (next, prev) {
-            (FacingDirection::Right, FacingDirection::Left) => Connection {
+            (FacingDirection::Right, FacingDirection::Right) => Connection {
                 flip_x: false,
                 flip_y: false,
                 straight: true,
                 rotation: 0.0,
             },
-            (FacingDirection::Left, FacingDirection::Right) => Connection {
+            (FacingDirection::Left, FacingDirection::Left) => Connection {
                 flip_x: true,
                 flip_y: true,
                 straight: true,
                 rotation: 0.0,
             },
-            (FacingDirection::Up, FacingDirection::Down) => Connection {
+            (FacingDirection::Up, FacingDirection::Up) => Connection {
                 flip_x: true,
                 flip_y: false,
                 straight: true,
                 rotation: -std::f32::consts::FRAC_PI_2,
             },
-            (FacingDirection::Down, FacingDirection::Up) => Connection {
+            (FacingDirection::Down, FacingDirection::Down) => Connection {
                 flip_x: false,
                 flip_y: false,
                 straight: true,
                 rotation: -std::f32::consts::FRAC_PI_2,
-            },
-            (FacingDirection::Right, FacingDirection::Down) => Connection {
-                flip_x: false,
-                flip_y: false,
-                straight: false,
-                rotation: 0.0,
             },
             (FacingDirection::Right, FacingDirection::Up) => Connection {
                 flip_x: false,
-                flip_y: true,
+                flip_y: false,
                 straight: false,
                 rotation: 0.0,
             },
-            (FacingDirection::Left, FacingDirection::Down) => Connection {
-                flip_x: true,
-                flip_y: false,
+            (FacingDirection::Right, FacingDirection::Down) => Connection {
+                flip_x: false,
+                flip_y: true,
                 straight: false,
                 rotation: 0.0,
             },
             (FacingDirection::Left, FacingDirection::Up) => Connection {
                 flip_x: true,
+                flip_y: false,
+                straight: false,
+                rotation: 0.0,
+            },
+            (FacingDirection::Left, FacingDirection::Down) => Connection {
+                flip_x: true,
                 flip_y: true,
                 straight: false,
                 rotation: 0.0,
             },
-            (FacingDirection::Down, FacingDirection::Right) => Connection {
+            (FacingDirection::Down, FacingDirection::Left) => Connection {
                 flip_x: true,
                 flip_y: false,
                 straight: false,
                 rotation: std::f32::consts::FRAC_PI_2,
             },
-            (FacingDirection::Down, FacingDirection::Left) => Connection {
+            (FacingDirection::Down, FacingDirection::Right) => Connection {
                 flip_x: false,
                 flip_y: false,
                 straight: false,
                 rotation: -std::f32::consts::FRAC_PI_2,
             },
-            (FacingDirection::Up, FacingDirection::Right) => Connection {
+            (FacingDirection::Up, FacingDirection::Left) => Connection {
                 flip_x: false,
                 flip_y: false,
                 straight: false,
                 rotation: std::f32::consts::FRAC_PI_2,
             },
-            (FacingDirection::Up, FacingDirection::Left) => Connection {
+            (FacingDirection::Up, FacingDirection::Right) => Connection {
                 flip_x: true,
                 flip_y: false,
                 straight: false,

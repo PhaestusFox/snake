@@ -1,4 +1,4 @@
-use bevy::{asset::LoadedFolder, platform::collections::HashMap, prelude::*};
+use bevy::{platform::collections::HashMap, prelude::*};
 use strum::IntoEnumIterator;
 
 use super::SnakeType;
@@ -10,20 +10,60 @@ impl Plugin for SnakeRenderPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SnakeTextureHandles>()
             .add_systems(FixedPostUpdate, update_snake_texture)
-            .add_systems(
-                FixedUpdate,
-                SnakeTextureHandles::shuttle_finished_to_loaded
-                    .run_if(SnakeTextureHandles::should_load),
-            )
             .add_systems(Update, update_snake_size);
     }
 }
 
 impl SnakeType {
-    pub fn segment_indices(&self) -> &'static [usize; 4] {
+    fn segment_indices(&self) -> &'static SnakePieceIndices {
         match self {
-            SnakeType::WhiteSpotted => &[2, 1, 0, 3],
-            SnakeType::BlueArrow => &[58, 57, 56, 59],
+            SnakeType::WhiteSpotted => &SnakePieceIndices {
+                head: 2,
+                body_straight: 1,
+                body_curve: 0,
+                tail: 15,
+            },
+            SnakeType::BlueArrow => &SnakePieceIndices {
+                head: 226,
+                body_straight: 225,
+                body_curve: 224,
+                tail: 239,
+            },
+        }
+    }
+
+    #[inline(always)]
+    fn load_snake(&self, asset_server: &AssetServer) -> SnakeHandles {
+        self.segment_indices().load_snake(asset_server)
+    }
+}
+
+struct SnakePieceIndices {
+    head: usize,
+    body_straight: usize,
+    body_curve: usize,
+    tail: usize,
+}
+
+impl SnakePieceIndices {
+    fn load_snake(&self, asset_server: &AssetServer) -> SnakeHandles {
+        SnakeHandles {
+            head: asset_server.load(format!(
+                "BattleSnake/snakes/32x32px_split/snake{:03}.png",
+                self.head
+            )),
+            body_straight: asset_server.load(format!(
+                "BattleSnake/snakes/32x32px_split/snake{:03}.png",
+                self.body_straight
+            )),
+            body_curve: asset_server.load(format!(
+                "BattleSnake/snakes/32x32px_split/snake{:03}.png",
+                self.body_curve
+            )),
+            tail: asset_server.load(format!(
+                "BattleSnake/snakes/32x32px_split/snake{:03}.png",
+                self.tail
+            )),
         }
     }
 }
@@ -34,13 +74,13 @@ fn update_snake_texture(
     textures: Res<SnakeTextureHandles>,
 ) {
     for (snake, snake_type) in &snakes {
-        let Some(textures) = textures.loaded.get(snake_type) else {
+        let Some(textures) = textures.snakes.get(snake_type) else {
             warn!("{:?} textures not loaded yet", snake_type);
             continue;
         };
         if let Some(head) = snake.first() {
             if let Ok((mut sprite, mut pos, direction)) = segments.get_mut(*head) {
-                sprite.image = textures[0].clone();
+                sprite.image = textures.head.clone();
                 match direction {
                     FacingDirection::Right => {
                         pos.rotation = Quat::from_rotation_z(0.);
@@ -79,9 +119,9 @@ fn update_snake_texture(
             let tail = FacingDirection::moving(next.translation, main.translation);
             let connection = Connection::new(head, tail);
             if connection.straight {
-                s.image = textures[1].clone();
+                s.image = textures.body_straight.clone();
             } else {
-                s.image = textures[2].clone();
+                s.image = textures.body_curve.clone();
             }
             main.rotation = Quat::from_rotation_z(connection.rotation);
             s.flip_y = connection.flip_y;
@@ -98,7 +138,7 @@ fn update_snake_texture(
                 pos.rotation = Quat::from_rotation_z(tail.to_rotation());
                 sprite.flip_x = false;
                 sprite.flip_y = false;
-                sprite.image = textures[3].clone();
+                sprite.image = textures.tail.clone();
             } else {
                 warn!("Failed to get tail segment sprite");
             }
@@ -123,44 +163,30 @@ fn update_snake_size(
 
 #[derive(Resource)]
 struct SnakeTextureHandles {
-    loading: Option<Handle<LoadedFolder>>,
-    loaded: HashMap<SnakeType, [Handle<Image>; 4]>,
+    snakes: HashMap<SnakeType, SnakeHandles>,
+}
+
+struct SnakeHandles {
+    head: Handle<Image>,
+    body_straight: Handle<Image>,
+    body_curve: Handle<Image>,
+    tail: Handle<Image>,
 }
 
 impl SnakeTextureHandles {
-    fn should_load(textures: Res<Self>, asset_server: Res<AssetServer>) -> bool {
-        if let Some(loading) = &textures.loading {
-            return asset_server.is_loaded(loading.id());
-        }
-        false
-    }
-    fn shuttle_finished_to_loaded(
-        mut textures: ResMut<SnakeTextureHandles>,
-        folders: Res<Assets<LoadedFolder>>,
-    ) {
-        let Some(loading) = textures.loading.take() else {
-            return;
-        };
-        let Some(folder) = folders.get(loading.id()) else {
-            panic!("Expected LoadedFolder to be present");
-        };
+    fn new(asset_server: &AssetServer) -> Self {
+        let mut snakes = HashMap::new();
         for snake_type in SnakeType::iter() {
-            let indices = snake_type
-                .segment_indices()
-                .map(|id| folder.handles[id].clone().typed::<Image>());
-            textures.loaded.insert(snake_type, indices);
+            snakes.insert(snake_type, snake_type.load_snake(asset_server));
         }
+        SnakeTextureHandles { snakes }
     }
 }
 
 impl FromWorld for SnakeTextureHandles {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();
-        let texture_handles = asset_server.load_folder("BattleSnake/snakes/32x32px_split");
-        SnakeTextureHandles {
-            loading: Some(texture_handles),
-            loaded: HashMap::new(),
-        }
+        SnakeTextureHandles::new(asset_server)
     }
 }
 

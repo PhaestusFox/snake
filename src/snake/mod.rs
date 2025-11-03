@@ -134,11 +134,34 @@ impl SnakeSegment {
     }
 }
 
-#[derive(Clone, Copy, Component, Default, PartialEq, Eq, Hash, strum_macros::EnumIter, Debug)]
+#[derive(
+    Clone,
+    Copy,
+    Component,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    strum_macros::EnumIter,
+    Debug,
+    strum_macros::FromRepr,
+)]
 pub enum SnakeType {
     #[default]
     WhiteSpotted = 0,
     BlueArrow = 14,
+}
+
+impl SnakeType {
+    pub fn next(&self) -> Self {
+        let mut iter = <SnakeType as strum::IntoEnumIterator>::iter();
+        for variant in iter.by_ref() {
+            if &variant == self {
+                return iter.next().unwrap_or(SnakeType::WhiteSpotted);
+            }
+        }
+        SnakeType::WhiteSpotted
+    }
 }
 
 #[derive(Resource, Component, Deref, DerefMut)]

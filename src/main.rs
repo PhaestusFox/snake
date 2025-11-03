@@ -20,7 +20,7 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        app.add_systems(First, (single_step, toggle_single_step));
+        app.add_systems(First, (single_step, toggle_single_step, change_snake));
     }
 
     app.insert_resource(snake::SnakeSize(100.));
@@ -62,6 +62,14 @@ fn toggle_single_step(input: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Vi
             time.set_relative_speed(1.0);
         } else {
             time.set_relative_speed(0.0);
+        }
+    }
+}
+
+fn change_snake(mut snakes: Query<&mut snake::SnakeType>, input: Res<ButtonInput<KeyCode>>) {
+    if input.just_pressed(KeyCode::F1) {
+        for mut snake_type in &mut snakes {
+            *snake_type = snake_type.next();
         }
     }
 }

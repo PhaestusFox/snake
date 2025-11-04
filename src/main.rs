@@ -1,7 +1,8 @@
 use bevy::{app::FixedMain, prelude::*};
 
-use crate::snake::FacingDirection;
+use crate::{collectables::SpawnFood, snake::FacingDirection};
 
+mod collectables;
 mod snake;
 
 fn main() {
@@ -25,6 +26,8 @@ fn main() {
 
     app.insert_resource(snake::SnakeSize(100.));
 
+    app.add_plugins(collectables::CollectablesPlugin);
+
     app.run();
 }
 
@@ -45,6 +48,8 @@ fn spawn_new_snake(mut commands: Commands) {
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None));
+
+    commands.trigger(SpawnFood);
 }
 
 fn single_step(world: &mut World) {

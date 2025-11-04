@@ -7,6 +7,7 @@ edition = "2024"
 bevy = "0.17"
 strum = "*"
 strum_macros = "*"
+rand = "*"
 # bevy_granite = { path = "Y:/dependencies/bevy_granite" }
 
 [profile.dev.package."*"]

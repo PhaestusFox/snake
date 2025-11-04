@@ -80,20 +80,28 @@ pub struct SnakeSegment;
 impl SnakeSegment {
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
         if let Some(&ChildOf(parent)) = world.get::<ChildOf>(ctx.entity) {
-            if world.get::<Snake>(parent).is_none() {
-                warn!("Added SnakeSegment is not a child of a Snake entity; self destructing now");
-                world.commands().entity(ctx.entity).despawn();
+            // get children of parent snake
+            if let Some(sibling) = world.get::<Children>(parent)
+                // get last child; the end of the snake
+                && let Some(pre) = sibling.last()
+                // get transform of last segment
+                && let Some(pos) = world.get::<Transform>(*pre).copied()
+                // get transform of this segment to modify
+                && let Some(mut seg_transform) = world.get_mut::<Transform>(ctx.entity)
+            {
+                seg_transform.translation = pos.translation;
+            }
+            // get the size of the snake from the parent, or fallback to global resource
+            let size = if let Some(size) = world.get::<SnakeSize>(parent) {
+                **size
+            } else {
+                **world.resource::<SnakeSize>()
             };
-
-            // let sibling = world
-            //     .get::<Children>(parent)
-            //     .expect("We are a child so it must have Children");
-            // if let Some(pre) = sibling.last()
-            //     && let Some(pos) = world.get::<Transform>(*pre).copied()
-            //     && let Some(mut seg_transform) = world.get_mut::<Transform>(ctx.entity)
-            // {
-            //     seg_transform.translation = pos.translation;
-            // }
+            // set the size of the segment sprite
+            let mut sprite = world
+                .get_mut::<Sprite>(ctx.entity)
+                .expect("SnakeSegment requires Sprite");
+            sprite.custom_size = Some(Vec2::splat(size));
         } else {
             info!(
                 "SnakeSegment added to entity that is not a child of a Snake;\nMitosis ACTIVATED;\nspawning new Snake;"

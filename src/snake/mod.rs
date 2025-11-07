@@ -11,7 +11,7 @@ mod rendering;
 
 pub use input::PlayerSnake;
 
-const BASE_SNAKE_SIZE: f32 = 32.0;
+use crate::WORLD_GRID_SIZE;
 
 #[derive(Component)]
 #[require(Transform, SnakeType, Visibility)]
@@ -173,8 +173,9 @@ impl SnakeType {
     }
 }
 
-#[derive(Resource, Component, Clone, Copy, PartialEq, Eq)]
+#[derive(Resource, Component, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SnakeSize {
+    #[default]
     Small,
     Medium,
     Large,
@@ -184,10 +185,10 @@ pub enum SnakeSize {
 impl AsRef<f32> for SnakeSize {
     fn as_ref(&self) -> &f32 {
         match self {
-            SnakeSize::Small => &BASE_SNAKE_SIZE,
-            SnakeSize::Medium => &(BASE_SNAKE_SIZE * 2.0),
-            SnakeSize::Large => &(BASE_SNAKE_SIZE * 4.0),
-            SnakeSize::Colossal => &(BASE_SNAKE_SIZE * 8.0),
+            SnakeSize::Small => &WORLD_GRID_SIZE,
+            SnakeSize::Medium => &(WORLD_GRID_SIZE * 2.0),
+            SnakeSize::Large => &(WORLD_GRID_SIZE * 4.0),
+            SnakeSize::Colossal => &(WORLD_GRID_SIZE * 8.0),
         }
     }
 }
@@ -197,12 +198,6 @@ impl Deref for SnakeSize {
 
     fn deref(&self) -> &Self::Target {
         self.as_ref()
-    }
-}
-
-impl Default for SnakeSize {
-    fn default() -> Self {
-        SnakeSize::Small
     }
 }
 

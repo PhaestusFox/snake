@@ -63,33 +63,33 @@ fn update_path(snakes: Query<&Children, With<Snake>>, mut facing: Query<&mut Fac
 }
 
 fn wrap_screen(
-    snakes: Populated<(Option<&SnakeSize>, &Children), With<Snake>>,
-    mut snake_segments: Query<&mut Transform>,
+    snakes: Query<(&Children, Option<&SnakeSize>), With<Snake>>,
+    mut snake_segments: Query<&mut Transform, With<SnakeSegment>>,
     fallback_size: Res<SnakeSize>,
     window: Single<&Window, With<PrimaryWindow>>,
 ) {
-    let half_width = window.width() / 2.0;
-    let half_height = window.height() / 2.0;
+    let width = window.width();
+    let height = window.height();
+    // let width = crate::RESOLUTION.0 as f32;
+    // let height = crate::RESOLUTION.1 as f32;
+    let half_width = width / 2.;
+    let half_height = height / 2.;
 
-    for (size, segments) in &snakes {
+    for (body, size) in &snakes {
         let size = **size.unwrap_or(&fallback_size);
-        let w_step = (window.width() / size).ceil() * size;
-        let h_step = (window.height() / size).ceil() * size;
-        for child in segments.iter() {
-            if let Ok(mut c_transform) = snake_segments.get_mut(child) {
-                let mut delta = Vec3::ZERO;
-                if c_transform.translation.x - (size / 2.) >= half_width {
-                    delta.x -= w_step - 1.;
-                } else if c_transform.translation.x + (size / 2.) <= -half_width {
-                    delta.x += w_step - 1.;
+        for segment in body {
+            if let Ok(mut transform) = snake_segments.get_mut(*segment) {
+                if transform.translation.x > half_width {
+                    transform.translation.x -= width + size;
+                } else if transform.translation.x < -half_width {
+                    transform.translation.x += width + size;
                 }
 
-                if c_transform.translation.y - (size / 2.) >= half_height {
-                    delta.y -= h_step - 1.;
-                } else if c_transform.translation.y + (size / 2.) <= -half_height {
-                    delta.y += h_step - 1.;
+                if transform.translation.y > half_height {
+                    transform.translation.y -= height + size;
+                } else if transform.translation.y < -half_height {
+                    transform.translation.y += height + size;
                 }
-                c_transform.translation += delta;
             }
         }
     }

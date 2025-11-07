@@ -78,10 +78,14 @@ fn change_snake_size(
 
         let factor = *new / *old;
 
-        let Ok(head_pos) = segments.get(body[0]).map(|t| t.translation) else {
+        let Ok(mut head_pos) = segments.get_mut(body[0]) else {
             warn!("Failed to get snake head transform");
             continue;
         };
+        let origin = head_pos.translation;
+        let new_origin = ((origin / *old) / factor).trunc() * *new;
+        head_pos.translation = new_origin;
+
         // reposition all segments based on new size
         // skip head as it will be considered the origin
         for segment in body.iter().skip(1) {
@@ -90,8 +94,8 @@ fn change_snake_size(
                 continue;
             };
             let z = seg_transform.translation.z;
-            let offset = (seg_transform.translation - head_pos) * factor;
-            seg_transform.translation = head_pos + offset;
+            let offset = (seg_transform.translation - origin) * factor;
+            seg_transform.translation = new_origin + offset;
             seg_transform.translation.z = z;
         }
     }

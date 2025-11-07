@@ -107,7 +107,7 @@ impl SnakeType {
     }
 
     #[inline(always)]
-    fn get_animation(&self) -> Option<SnakeType> {
+    pub fn get_animation(&self) -> Option<SnakeType> {
         match self {
             SnakeType::GearWindowA => Some(SnakeType::GearWindowB),
             SnakeType::GearWindowB => Some(SnakeType::GearWindowA),

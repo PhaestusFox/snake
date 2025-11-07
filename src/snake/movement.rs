@@ -3,62 +3,37 @@ use bevy::window::PrimaryWindow;
 use super::*;
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(
-        FixedUpdate,
-        (
-            load_user_input_into_head,
-            move_snake,
-            (update_path, wrap_screen),
-        )
-            .chain(),
-    );
-}
-
-fn load_user_input_into_head(
-    snake: Query<(&FacingDirection, &Children), With<Snake>>,
-    mut segments: Query<&mut FacingDirection, Without<Snake>>,
-) {
-    for (direction, body) in snake.iter() {
-        let Some(head) = body.first() else {
-            warn!("Snake has no segments");
-            continue;
-        };
-        if let Ok(mut head_direction) = segments.get_mut(*head)
-            && head_direction.ne(&direction.invers())
-        {
-            *head_direction = *direction;
-        } else {
-            warn!("Failed to get head segment facing direction");
-        }
-    }
+    app.add_systems(FixedUpdate, (move_snake, wrap_screen).chain());
 }
 
 pub fn move_snake(
-    mut snakes: Populated<(Option<&SnakeSize>, &Children), With<Snake>>,
-    mut segments: Query<(&mut Transform, &FacingDirection), Without<Snake>>,
+    mut snakes: Populated<(Option<&SnakeSize>, &Children, &FacingDirection), With<Snake>>,
+    mut segments: Query<(&mut Transform, &mut FacingDirection), Without<Snake>>,
     fallback_size: Res<SnakeSize>,
 ) {
-    for (size, body) in &mut snakes {
+    for (size, body, direction) in &mut snakes {
         let size = **size.unwrap_or(&fallback_size);
-        for segment in body.iter() {
-            let Ok((mut seg_transform, direction)) = segments.get_mut(segment) else {
-                warn!("Failed to get snake segment transform");
-                continue;
-            };
-            seg_transform.translation += direction.to_vec() * size;
-        }
-    }
-}
-
-fn update_path(snakes: Query<&Children, With<Snake>>, mut facing: Query<&mut FacingDirection>) {
-    for segments in snakes.iter() {
-        for segment in segments.windows(2).rev() {
-            let Ok([f, mut s]) = facing.get_many_mut([segment[0], segment[1]]) else {
+        let head = body[0];
+        let Ok((_, mut head_facing)) = segments.get_mut(head) else {
+            warn!("Failed to get head off Snake");
+            continue;
+        };
+        *head_facing = *direction;
+        for segment in body.windows(2).rev() {
+            let Ok([(t, f), (mut m, mut r)]) = segments.get_many_mut([segment[0], segment[1]])
+            else {
                 warn!("Failed to get head segment facing direction");
                 continue;
             };
-            *s = *f;
+            m.translation.x = t.translation.x;
+            m.translation.y = t.translation.y;
+            *r = *f;
         }
+        let Ok((mut head_transform, _)) = segments.get_mut(head) else {
+            warn!("Failed to get head off Snake");
+            continue;
+        };
+        head_transform.translation += direction.to_vec() * size;
     }
 }
 

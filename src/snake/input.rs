@@ -88,12 +88,19 @@ impl PlayerAction {
 pub struct PlayerSnake;
 
 fn update_snake_direction(
-    mut snakes: Single<&mut FacingDirection, With<PlayerSnake>>,
+    mut snakes: Single<(&mut FacingDirection, &Children), With<PlayerSnake>>,
+    segments: Query<&FacingDirection, Without<PlayerSnake>>,
     keys: Res<ActionState<PlayerAction>>,
 ) {
     for action in keys.get_just_pressed() {
-        if let PlayerAction::Move(direction) = action {
-            **snakes = direction;
+        let Ok(head) = segments.get(snakes.1[0]) else {
+            warn!("Player Snake has no head?");
+            continue;
+        };
+        if let PlayerAction::Move(direction) = action
+            && direction != head.invers()
+        {
+            *snakes.0 = direction;
         }
     }
 }

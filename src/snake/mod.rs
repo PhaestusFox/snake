@@ -174,9 +174,18 @@ pub enum SnakeType {
 impl SnakeType {
     pub fn next(&self) -> Self {
         let mut iter = <SnakeType as strum::IntoEnumIterator>::iter();
+        let mut frames = vec![*self];
+        while let Some(frame) = self.get_animation()
+            && !frames.contains(&frame)
+        {
+            frames.push(frame);
+        }
+        let mut next = false;
         for variant in iter.by_ref() {
-            if &variant == self {
-                return iter.next().unwrap_or(SnakeType::SpottedWhite);
+            if frames.contains(&variant) {
+                next = true;
+            } else if next {
+                return variant;
             }
         }
         SnakeType::SpottedWhite

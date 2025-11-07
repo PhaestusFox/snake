@@ -32,7 +32,7 @@ fn main() {
 
     app.add_systems(Startup, spawn_player_snake);
 
-    app.insert_resource(Time::<Fixed>::from_hz(10.));
+    app.insert_resource(Time::<Fixed>::from_hz(5.));
 
     app.add_plugins(snake::SnakePlugin);
 
@@ -58,7 +58,7 @@ fn spawn_player_snake(mut commands: Commands) {
     commands
         .spawn((
             snake::Snake,
-            snake::SnakeType::BlueArrow,
+            snake::SnakeType::ArrowBlue,
             Transform::default(),
             FacingDirection::Right,
             snake::PlayerSnake,

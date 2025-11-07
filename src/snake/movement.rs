@@ -33,7 +33,7 @@ fn load_user_input_into_head(
     }
 }
 
-fn move_snake(
+pub fn move_snake(
     mut snakes: Populated<(Option<&SnakeSize>, &Children), With<Snake>>,
     mut segments: Query<(&mut Transform, &FacingDirection), Without<Snake>>,
     fallback_size: Res<SnakeSize>,

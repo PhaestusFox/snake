@@ -73,7 +73,7 @@ impl FacingDirection {
 
 #[derive(Component, Default)]
 #[component(on_add = Self::on_add)]
-#[require(Transform, FacingDirection, Sprite)]
+#[require(Transform, FacingDirection, Sprite, SnakePiece)]
 pub struct SnakeSegment;
 
 impl SnakeSegment {
@@ -157,8 +157,18 @@ impl SnakeSegment {
 )]
 pub enum SnakeType {
     #[default]
-    WhiteSpotted = 0,
-    BlueArrow = 14,
+    SpottedWhite = 0,
+    ArrowBlue,
+    GearWindowA,
+    GearWindowB,
+    GearRickA,
+    GearRickB,
+    GearPreWindowA,
+    GearPreWindowB,
+    EyeballBlueA,
+    EyeballBlueB,
+    EyeballYellowA,
+    EyeballYellowB,
 }
 
 impl SnakeType {
@@ -166,10 +176,10 @@ impl SnakeType {
         let mut iter = <SnakeType as strum::IntoEnumIterator>::iter();
         for variant in iter.by_ref() {
             if &variant == self {
-                return iter.next().unwrap_or(SnakeType::WhiteSpotted);
+                return iter.next().unwrap_or(SnakeType::SpottedWhite);
             }
         }
-        SnakeType::WhiteSpotted
+        SnakeType::SpottedWhite
     }
 }
 
@@ -226,4 +236,13 @@ impl SnakeSize {
     pub fn dec(&mut self) {
         *self = self.down();
     }
+}
+
+#[derive(Component, Default)]
+enum SnakePiece {
+    Head,
+    BodyStraight,
+    BodyCurve,
+    #[default]
+    Tail,
 }

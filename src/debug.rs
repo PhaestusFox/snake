@@ -1,4 +1,4 @@
-use crate::snake::SnakeSize;
+use crate::snake::{PlayerSnake, SnakeSize};
 
 use super::*;
 
@@ -49,7 +49,7 @@ fn change_snake_size(
     mut snake_size: ResMut<snake::SnakeSize>,
     input: Res<ButtonInput<KeyCode>>,
     // all snake with override size
-    mut snakes: Query<(&Children, Option<&mut SnakeSize>)>,
+    mut snakes: Query<(&Children, Option<&mut SnakeSize>), With<PlayerSnake>>,
     mut segments: Query<&mut Transform>,
 ) {
     let next: SnakeSize;

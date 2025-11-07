@@ -1,12 +1,16 @@
 use bevy::{app::FixedMain, prelude::*, window::WindowResolution};
 
-use crate::{collectables::SpawnFood, snake::FacingDirection};
+use crate::{
+    collectables::SpawnFood,
+    snake::{FacingDirection, SnakeSize},
+};
 
 mod collectables;
 mod debug;
+pub mod map;
 mod snake;
 
-const U_GRID_SIZE: u32 = 32;
+const U_GRID_SIZE: u32 = 16;
 const WORLD_GRID_SIZE: f32 = U_GRID_SIZE as f32;
 
 fn main() {
@@ -30,11 +34,11 @@ fn main() {
 
     app.add_systems(Startup, spawn_camera);
 
-    app.add_systems(Startup, spawn_player_snake);
+    app.add_systems(Startup, (spawn_player_snake, spawn_ai_snake));
 
     app.insert_resource(Time::<Fixed>::from_hz(5.));
 
-    app.add_plugins(snake::SnakePlugin);
+    app.add_plugins((snake::SnakePlugin, map::MapPlugin));
 
     #[cfg(debug_assertions)]
     {
@@ -51,7 +55,9 @@ fn main() {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    let projection = OrthographicProjection::default_2d();
+
+    commands.spawn((Camera2d, Projection::Orthographic(projection)));
 }
 
 fn spawn_player_snake(mut commands: Commands) {
@@ -70,6 +76,22 @@ fn spawn_player_snake(mut commands: Commands) {
         .with_child((snake::SnakeSegment, FacingDirection::None));
 
     commands.trigger(SpawnFood);
+}
+
+fn spawn_ai_snake(mut commands: Commands) {
+    commands
+        .spawn((
+            snake::Snake,
+            snake::SnakeType::ArrowBlue,
+            Transform::default(),
+            FacingDirection::Right,
+            SnakeSize::Medium,
+        ))
+        .with_child((snake::SnakeSegment, FacingDirection::None))
+        .with_child((snake::SnakeSegment, FacingDirection::None))
+        .with_child((snake::SnakeSegment, FacingDirection::None))
+        .with_child((snake::SnakeSegment, FacingDirection::None))
+        .with_child((snake::SnakeSegment, FacingDirection::None));
 }
 
 mod utils;

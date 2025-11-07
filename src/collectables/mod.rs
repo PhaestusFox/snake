@@ -4,7 +4,10 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::snake::{Snake, SnakeSegment, SnakeSize};
+use crate::{
+    map::mini_map::MiniMapColor,
+    snake::{Snake, SnakeSegment, SnakeSize},
+};
 
 pub struct CollectablesPlugin;
 
@@ -135,7 +138,9 @@ fn spawn_food(
     commands.spawn((
         Collectable::Apple,
         Transform::from_translation(Vec3::new(x, y, 0.0)),
-        Collider(Vec2::splat(100.0)),
+        Collider(Vec2::splat(32.0)),
+        crate::map::ObjectSize(UVec2::splat(2)),
+        MiniMapColor(Color::linear_rgb(0.1, 0.8, 0.1)),
     ));
 }
 

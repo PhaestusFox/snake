@@ -28,7 +28,7 @@ fn force_window_resilution_to_have_factor_of_cell_size(
     }
 }
 
-const RESOLUTION: (u32, u32) = (1024, 768);
+const RESOLUTION: (u32, u32) = (U_GRID_SIZE * 4 * 8 * 2, U_GRID_SIZE * 3 * 8 * 2);
 // Minimum window size is one Segment of the Biggest SnakeSize
 const MIN_WINDOW_SIZE: Vec2 = Vec2::new(WORLD_GRID_SIZE * 8., WORLD_GRID_SIZE * 8.);
 

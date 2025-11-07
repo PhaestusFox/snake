@@ -1,3 +1,5 @@
+use crate::map::mini_map::MiniMapColor;
+
 use super::*;
 use leafwing_input_manager::prelude::*;
 pub struct SnakeInputPlugin;
@@ -85,6 +87,7 @@ impl PlayerAction {
 }
 
 #[derive(Component)]
+#[require(MiniMapColor = MiniMapColor(Color::WHITE))]
 pub struct PlayerSnake;
 
 fn update_snake_direction(

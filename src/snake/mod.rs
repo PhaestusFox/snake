@@ -3,6 +3,7 @@ use std::ops::Deref;
 use bevy::{
     ecs::{lifecycle::HookContext, world::DeferredWorld},
     prelude::*,
+    sprite::Anchor,
 };
 
 mod input;

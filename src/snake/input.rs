@@ -43,6 +43,43 @@ impl PlayerAction {
             PlayerAction::Move(FacingDirection::Right),
             KeyCode::ArrowRight,
         );
+
+        // Gamepad buttons for movement
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Up),
+            GamepadButton::North,
+        );
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Down),
+            GamepadButton::South,
+        );
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Left),
+            GamepadButton::West,
+        );
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Right),
+            GamepadButton::East,
+        );
+
+        // Gamepad axes for movement
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Up),
+            GamepadControlDirection::positive(GamepadAxis::LeftStickY),
+        );
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Down),
+            GamepadControlDirection::negative(GamepadAxis::LeftStickY),
+        );
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Left),
+            GamepadControlDirection::negative(GamepadAxis::LeftStickX),
+        );
+        input_map.insert(
+            PlayerAction::Move(FacingDirection::Right),
+            GamepadControlDirection::positive(GamepadAxis::LeftStickX),
+        );
+
         input_map
     }
 }

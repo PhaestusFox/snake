@@ -3,8 +3,11 @@ use bevy::{
     prelude::*,
 };
 
+mod input;
 mod movement;
 mod rendering;
+
+pub use input::PlayerSnake;
 
 const SNAKE_SIZE: f32 = 32.0;
 
@@ -18,12 +21,13 @@ impl Plugin for SnakePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(rendering::SnakeRenderPlugin)
             .add_plugins(movement::plugin)
-            .add_systems(PreUpdate, user_input)
             .init_resource::<SnakeSize>();
+
+        app.add_plugins(input::SnakeInputPlugin);
     }
 }
 
-#[derive(Component, Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Component, Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub enum FacingDirection {
     Right,
     Down,
@@ -53,21 +57,14 @@ impl FacingDirection {
             FacingDirection::None => Vec3::ZERO,
         }
     }
-}
 
-fn user_input(
-    mut snakes: Query<&mut FacingDirection, With<Snake>>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
-    for mut facing in snakes.iter_mut() {
-        if keys.pressed(KeyCode::KeyD) {
-            *facing = FacingDirection::Right;
-        } else if keys.pressed(KeyCode::KeyS) {
-            *facing = FacingDirection::Down;
-        } else if keys.pressed(KeyCode::KeyA) {
-            *facing = FacingDirection::Left;
-        } else if keys.pressed(KeyCode::KeyW) {
-            *facing = FacingDirection::Up;
+    pub fn invers(&self) -> Self {
+        match self {
+            FacingDirection::Right => FacingDirection::Left,
+            FacingDirection::Down => FacingDirection::Up,
+            FacingDirection::Left => FacingDirection::Right,
+            FacingDirection::Up => FacingDirection::Down,
+            FacingDirection::None => FacingDirection::None,
         }
     }
 }
@@ -86,22 +83,41 @@ impl SnakeSegment {
                 && let Some(pre) = sibling.last()
                 // get transform of last segment
                 && let Some(pos) = world.get::<Transform>(*pre).copied()
+                && let Some(facing) = world.get::<FacingDirection>(*pre).copied()
                 // get transform of this segment to modify
                 && let Some(mut seg_transform) = world.get_mut::<Transform>(ctx.entity)
             {
                 seg_transform.translation = pos.translation;
+                seg_transform.rotation = facing.to_rotation();
             }
+
             // get the size of the snake from the parent, or fallback to global resource
             let size = if let Some(size) = world.get::<SnakeSize>(parent) {
                 **size
             } else {
                 **world.resource::<SnakeSize>()
             };
+
+            // get the snake type from the parent to determine textures
+            let snake_type = world
+                .get::<SnakeType>(parent)
+                .copied()
+                .unwrap_or(SnakeType::default());
+            // get the textures for this snake type
+            let textures = world
+                .resource::<rendering::SnakeTextureHandles>()
+                .get(&snake_type)
+                // this will *probably* be the tail so grab that texture
+                .map(|c| c.tail.clone());
+
             // set the size of the segment sprite
             let mut sprite = world
                 .get_mut::<Sprite>(ctx.entity)
                 .expect("SnakeSegment requires Sprite");
             sprite.custom_size = Some(Vec2::splat(size));
+            if let Some(tail) = textures {
+                sprite.image = tail;
+            }
         } else {
             info!(
                 "SnakeSegment added to entity that is not a child of a Snake;\nMitosis ACTIVATED;\nspawning new Snake;"

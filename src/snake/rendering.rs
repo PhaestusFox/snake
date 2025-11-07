@@ -152,16 +152,16 @@ fn update_snake_size(
     }
 }
 
-#[derive(Resource)]
-struct SnakeTextureHandles {
+#[derive(Resource, Deref)]
+pub struct SnakeTextureHandles {
     snakes: HashMap<SnakeType, SnakeHandles>,
 }
 
-struct SnakeHandles {
-    head: Handle<Image>,
-    body_straight: Handle<Image>,
-    body_curve: Handle<Image>,
-    tail: Handle<Image>,
+pub struct SnakeHandles {
+    pub head: Handle<Image>,
+    pub body_straight: Handle<Image>,
+    pub body_curve: Handle<Image>,
+    pub tail: Handle<Image>,
 }
 
 impl SnakeTextureHandles {

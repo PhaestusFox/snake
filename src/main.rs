@@ -13,7 +13,7 @@ fn main() {
 
     app.add_systems(Startup, spawn_camera);
 
-    app.add_systems(Startup, spawn_new_snake);
+    app.add_systems(Startup, spawn_player_snake);
 
     app.insert_resource(Time::<Fixed>::from_hz(5.));
 
@@ -35,13 +35,14 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
 
-fn spawn_new_snake(mut commands: Commands) {
+fn spawn_player_snake(mut commands: Commands) {
     commands
         .spawn((
             snake::Snake,
             snake::SnakeType::BlueArrow,
             Transform::default(),
             FacingDirection::Right,
+            snake::PlayerSnake,
         ))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))

@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use bevy::{
     ecs::{lifecycle::HookContext, world::DeferredWorld},
     prelude::*,
@@ -9,7 +11,7 @@ mod rendering;
 
 pub use input::PlayerSnake;
 
-const SNAKE_SIZE: f32 = 32.0;
+const BASE_SNAKE_SIZE: f32 = 32.0;
 
 #[derive(Component)]
 #[require(Transform, SnakeType, Visibility)]
@@ -78,17 +80,23 @@ impl SnakeSegment {
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
         if let Some(&ChildOf(parent)) = world.get::<ChildOf>(ctx.entity) {
             // get children of parent snake
-            if let Some(sibling) = world.get::<Children>(parent)
-                // get last child; the end of the snake
-                && let Some(pre) = sibling.last()
+            if let Some(sibling) = world.get::<Children>(parent) &&
+            // get last child; the end of the snake
+            let Some(pre) = sibling.last().cloned()
+            {
+                // get the index of this segment in the siblings
+                let layer = sibling.len();
+
                 // get transform of last segment
-                && let Some(pos) = world.get::<Transform>(*pre).copied()
-                && let Some(facing) = world.get::<FacingDirection>(*pre).copied()
+                if let Some(pos) = world.get::<Transform>(pre).copied()
+                && let Some(facing) = world.get::<FacingDirection>(pre).copied()
                 // get transform of this segment to modify
                 && let Some(mut seg_transform) = world.get_mut::<Transform>(ctx.entity)
-            {
-                seg_transform.translation = pos.translation;
-                seg_transform.rotation = facing.to_rotation();
+                {
+                    seg_transform.translation = pos.translation;
+                    seg_transform.translation.z = -(layer as f32);
+                    seg_transform.rotation = facing.to_rotation();
+                }
             }
 
             // get the size of the snake from the parent, or fallback to global resource
@@ -165,11 +173,62 @@ impl SnakeType {
     }
 }
 
-#[derive(Resource, Component, Deref, DerefMut)]
-pub struct SnakeSize(pub f32);
+#[derive(Resource, Component, Clone, Copy, PartialEq, Eq)]
+pub enum SnakeSize {
+    Small,
+    Medium,
+    Large,
+    Colossal,
+}
+
+impl AsRef<f32> for SnakeSize {
+    fn as_ref(&self) -> &f32 {
+        match self {
+            SnakeSize::Small => &BASE_SNAKE_SIZE,
+            SnakeSize::Medium => &(BASE_SNAKE_SIZE * 2.0),
+            SnakeSize::Large => &(BASE_SNAKE_SIZE * 4.0),
+            SnakeSize::Colossal => &(BASE_SNAKE_SIZE * 8.0),
+        }
+    }
+}
+
+impl Deref for SnakeSize {
+    type Target = f32;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
 
 impl Default for SnakeSize {
     fn default() -> Self {
-        SnakeSize(SNAKE_SIZE)
+        SnakeSize::Small
+    }
+}
+
+impl SnakeSize {
+    pub fn up(&self) -> Self {
+        match self {
+            SnakeSize::Small => SnakeSize::Medium,
+            SnakeSize::Medium => SnakeSize::Large,
+            SnakeSize::Large => SnakeSize::Colossal,
+            SnakeSize::Colossal => SnakeSize::Colossal,
+        }
+    }
+
+    pub fn down(&self) -> Self {
+        match self {
+            SnakeSize::Small => SnakeSize::Small,
+            SnakeSize::Medium => SnakeSize::Small,
+            SnakeSize::Large => SnakeSize::Medium,
+            SnakeSize::Colossal => SnakeSize::Large,
+        }
+    }
+
+    pub fn inc(&mut self) {
+        *self = self.up();
+    }
+    pub fn dec(&mut self) {
+        *self = self.down();
     }
 }

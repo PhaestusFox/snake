@@ -55,9 +55,7 @@ fn update_snake_direction(
     keys: Res<ActionState<PlayerAction>>,
 ) {
     for action in keys.get_just_pressed() {
-        if let PlayerAction::Move(direction) = action
-            && direction != snakes.invers()
-        {
+        if let PlayerAction::Move(direction) = action {
             **snakes = direction;
         }
     }

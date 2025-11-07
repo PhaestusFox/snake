@@ -23,7 +23,9 @@ fn load_user_input_into_head(
             warn!("Snake has no segments");
             continue;
         };
-        if let Ok(mut head_direction) = segments.get_mut(*head) {
+        if let Ok(mut head_direction) = segments.get_mut(*head)
+            && head_direction.ne(&direction.invers())
+        {
             *head_direction = *direction;
         } else {
             warn!("Failed to get head segment facing direction");

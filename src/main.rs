@@ -3,6 +3,7 @@ use bevy::{app::FixedMain, prelude::*};
 use crate::{collectables::SpawnFood, snake::FacingDirection};
 
 mod collectables;
+mod debug;
 mod snake;
 
 fn main() {
@@ -21,10 +22,10 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        app.add_systems(First, (single_step, toggle_single_step, change_snake));
+        app.add_plugins(debug::TestPowerPlugin);
     }
 
-    app.insert_resource(snake::SnakeSize(100.));
+    app.insert_resource(snake::SnakeSize::Small);
 
     app.add_plugins(collectables::CollectablesPlugin);
 
@@ -51,31 +52,4 @@ fn spawn_player_snake(mut commands: Commands) {
         .with_child((snake::SnakeSegment, FacingDirection::None));
 
     commands.trigger(SpawnFood);
-}
-
-fn single_step(world: &mut World) {
-    if world
-        .resource::<ButtonInput<KeyCode>>()
-        .just_pressed(KeyCode::Space)
-    {
-        world.run_schedule(FixedMain);
-    }
-}
-
-fn toggle_single_step(input: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Virtual>>) {
-    if input.just_pressed(KeyCode::F12) {
-        if time.relative_speed() < 0.1 {
-            time.set_relative_speed(1.0);
-        } else {
-            time.set_relative_speed(0.0);
-        }
-    }
-}
-
-fn change_snake(mut snakes: Query<&mut snake::SnakeType>, input: Res<ButtonInput<KeyCode>>) {
-    if input.just_pressed(KeyCode::F1) {
-        for mut snake_type in &mut snakes {
-            *snake_type = snake_type.next();
-        }
-    }
 }

@@ -14,9 +14,43 @@ pub use input::PlayerSnake;
 
 use crate::WORLD_GRID_SIZE;
 
-#[derive(Component)]
-#[require(Transform, SnakeType, Visibility)]
-pub struct Snake;
+#[derive(Component, DerefMut, Deref)]
+#[require(Transform, Visibility)]
+pub struct Snake {
+    #[deref]
+    pub snake_type: Handle<SnakeType>,
+    pub frame: usize,
+}
+
+impl From<&Snake> for AssetId<SnakeType> {
+    fn from(value: &Snake) -> Self {
+        value.snake_type.id()
+    }
+}
+
+impl std::fmt::Display for Snake {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.snake_type {
+            Handle::Uuid(id, _) => write!(f, "Snake({})", id),
+            Handle::Strong(ref id) => {
+                let Ok(Some(path)) = id.path::<Option<bevy::asset::AssetPath<'static>>>("path")
+                else {
+                    return write!(f, "Snake(Unknown)");
+                };
+                write!(f, "{:?} Snake", path.path().file_name())
+            }
+        }
+    }
+}
+
+impl Snake {
+    pub fn new(snake_type: Handle<SnakeType>) -> Self {
+        Snake {
+            snake_type,
+            frame: 0,
+        }
+    }
+}
 
 pub struct SnakePlugin;
 
@@ -25,6 +59,9 @@ impl Plugin for SnakePlugin {
         app.add_plugins(rendering::SnakeRenderPlugin)
             .add_plugins(movement::plugin)
             .init_resource::<SnakeSize>();
+
+        app.init_asset_loader::<asset::SnakeLoader>();
+        app.init_asset::<asset::SnakeType>();
 
         app.add_plugins(input::SnakeInputPlugin);
     }
@@ -108,16 +145,16 @@ impl SnakeSegment {
             };
 
             // get the snake type from the parent to determine textures
-            let snake_type = world
-                .get::<SnakeType>(parent)
-                .copied()
-                .unwrap_or(SnakeType::default());
-            // get the textures for this snake type
-            let textures = world
-                .resource::<rendering::SnakeTextureHandles>()
-                .get(&snake_type)
-                // this will *probably* be the tail so grab that texture
-                .map(|c| c.tail.clone());
+            let textures = if let Some(snake_type) = world.get::<Snake>(parent) {
+                // get the textures for this snake type
+                world
+                    .resource::<Assets<SnakeType>>()
+                    .get(snake_type)
+                    // this will *probably* be the tail so grab that texture
+                    .map(|c| c.body.tail())
+            } else {
+                None
+            };
 
             // set the size of the segment sprite
             let mut sprite = world
@@ -135,9 +172,10 @@ impl SnakeSegment {
                 .get::<Transform>(ctx.entity)
                 .cloned()
                 .unwrap_or_default();
+            let default_snake = world.resource::<AssetServer>().load(SnakeId::default());
             world
                 .commands()
-                .spawn((Snake, transform))
+                .spawn((Snake::new(default_snake), transform))
                 .add_child(ctx.entity)
                 .with_child(SnakeSegment);
         };
@@ -147,7 +185,6 @@ impl SnakeSegment {
 #[derive(
     Clone,
     Copy,
-    Component,
     Default,
     PartialEq,
     Eq,
@@ -155,41 +192,34 @@ impl SnakeSegment {
     strum_macros::EnumIter,
     Debug,
     strum_macros::FromRepr,
+    strum_macros::IntoStaticStr,
 )]
-pub enum SnakeType {
+pub enum SnakeId {
     #[default]
     SpottedWhite = 0,
     ArrowBlue,
     GearWindowA,
-    GearWindowB,
     GearRickA,
-    GearRickB,
     GearPreWindowA,
-    GearPreWindowB,
     EyeballBlueA,
-    EyeballBlueB,
     EyeballYellowA,
-    EyeballYellowB,
 }
 
-impl SnakeType {
+impl From<SnakeId> for bevy::asset::AssetPath<'static> {
+    fn from(value: SnakeId) -> bevy::asset::AssetPath<'static> {
+        bevy::asset::AssetPath::from(format!("snakes/{value:?}.snake"))
+    }
+}
+
+impl SnakeId {
     pub fn next(&self) -> Self {
-        let mut iter = <SnakeType as strum::IntoEnumIterator>::iter();
-        let mut frames = vec![*self];
-        while let Some(frame) = self.get_animation()
-            && !frames.contains(&frame)
-        {
-            frames.push(frame);
-        }
-        let mut next = false;
-        for variant in iter.by_ref() {
-            if frames.contains(&variant) {
-                next = true;
-            } else if next {
-                return variant;
+        let mut iter = <SnakeId as strum::IntoEnumIterator>::iter();
+        for id in iter.by_ref() {
+            if &id == self {
+                return iter.next().unwrap_or(SnakeId::default());
             }
         }
-        SnakeType::SpottedWhite
+        SnakeId::default()
     }
 }
 
@@ -256,3 +286,7 @@ enum SnakePiece {
     #[default]
     Tail,
 }
+
+mod asset;
+
+pub use asset::SnakeType;

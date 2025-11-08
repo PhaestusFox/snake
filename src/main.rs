@@ -1,17 +1,10 @@
-use bevy::{app::FixedMain, prelude::*, window::WindowResolution};
+use bevy::{app::FixedMain, asset::AssetPath, prelude::*, window::WindowResolution};
 
-use crate::{
+use sneck::{
     collectables::SpawnFood,
-    snake::{FacingDirection, SnakeSize},
+    snake::{FacingDirection, SnakeId, SnakeSize},
+    *,
 };
-
-mod collectables;
-mod debug;
-pub mod map;
-mod snake;
-
-const U_GRID_SIZE: u32 = 16;
-const WORLD_GRID_SIZE: f32 = U_GRID_SIZE as f32;
 
 fn main() {
     let mut app = App::new();
@@ -26,11 +19,15 @@ fn main() {
                     title: "Sneck".to_string(),
                     resolution: utils::get_base_resolution(),
                     resize_constraints: utils::get_window_constraints(),
+                    transparent: true,
+                    // decorations: false,
+                    window_level: bevy::window::WindowLevel::AlwaysOnTop,
                     ..Default::default()
                 }),
                 ..Default::default()
             }),
     );
+    app.insert_resource(ClearColor(Color::NONE));
 
     app.add_systems(Startup, spawn_camera);
 
@@ -60,11 +57,10 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn((Camera2d, Projection::Orthographic(projection)));
 }
 
-fn spawn_player_snake(mut commands: Commands) {
+fn spawn_player_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
-            snake::Snake,
-            snake::SnakeType::ArrowBlue,
+            snake::Snake::new(asset_server.load(snake::SnakeId::ArrowBlue)),
             Transform::default(),
             FacingDirection::Right,
             snake::PlayerSnake,
@@ -78,11 +74,12 @@ fn spawn_player_snake(mut commands: Commands) {
     commands.trigger(SpawnFood);
 }
 
-fn spawn_ai_snake(mut commands: Commands) {
+fn spawn_ai_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let snake = asset_server.load(snake::SnakeId::ArrowBlue);
+
     commands
         .spawn((
-            snake::Snake,
-            snake::SnakeType::ArrowBlue,
+            snake::Snake::new(snake),
             Transform::default(),
             FacingDirection::Right,
             SnakeSize::Medium,
@@ -93,5 +90,3 @@ fn spawn_ai_snake(mut commands: Commands) {
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None));
 }
-
-mod utils;

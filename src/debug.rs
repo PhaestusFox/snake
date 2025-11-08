@@ -1,4 +1,4 @@
-use crate::snake::{PlayerSnake, SnakeSize};
+use crate::snake::{PlayerSnake, Snake, SnakeSize};
 
 use super::*;
 
@@ -23,7 +23,7 @@ fn single_step(world: &mut World) {
         .resource::<ButtonInput<KeyCode>>()
         .just_pressed(KeyCode::Space)
     {
-        world.run_schedule(FixedMain);
+        world.run_schedule(bevy::app::FixedMain);
     }
 }
 
@@ -37,10 +37,23 @@ fn toggle_single_step(input: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Vi
     }
 }
 
-fn change_skin(mut snakes: Query<&mut snake::SnakeType>, input: Res<ButtonInput<KeyCode>>) {
+fn change_skin(
+    mut snakes: Query<&mut Snake>,
+    input: Res<ButtonInput<KeyCode>>,
+    snake_types: Res<Assets<snake::SnakeType>>,
+    asset_server: Res<AssetServer>,
+) {
     if input.just_pressed(KeyCode::F1) {
         for mut snake_type in &mut snakes {
-            *snake_type = snake_type.next();
+            let Some(skin) = snake_types.get(snake_type.as_ref()) else {
+                warn!(
+                    "Failed to get snake type {} for skin change",
+                    snake_type.as_ref()
+                );
+                continue;
+            };
+            let next = skin.id.next();
+            **snake_type = asset_server.load(next);
         }
     }
 }

@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::{platform::collections::HashMap, prelude::*};
 use strum::IntoEnumIterator;
 
@@ -23,80 +25,50 @@ impl Plugin for SnakeRenderPlugin {
     }
 }
 
-impl SnakeType {
-    fn segment_indices(&self) -> &'static SnakePieceIndices {
+impl SnakeId {
+    pub fn segment_indices(&self) -> &'static SnakePieceIndices {
         match self {
-            SnakeType::SpottedWhite => &SnakePieceIndices {
+            SnakeId::SpottedWhite => &SnakePieceIndices {
                 head: 2,
                 body_straight: 1,
                 body_curve: 0,
                 tail: 15,
             },
-            SnakeType::ArrowBlue => &SnakePieceIndices {
+            SnakeId::ArrowBlue => &SnakePieceIndices {
                 head: 226,
                 body_straight: 225,
                 body_curve: 224,
                 tail: 239,
             },
-            SnakeType::GearWindowA => &SnakePieceIndices {
+            SnakeId::GearWindowA => &SnakePieceIndices {
                 head: 338,
                 body_straight: 336,
                 body_curve: 340,
                 tail: 342,
             },
-            SnakeType::GearWindowB => &SnakePieceIndices {
-                head: 339,
-                body_straight: 337,
-                body_curve: 341,
-                tail: 343,
-            },
-            SnakeType::GearRickA => &SnakePieceIndices {
+            SnakeId::GearRickA => &SnakePieceIndices {
                 head: 344,
                 body_straight: 336,
                 body_curve: 340,
                 tail: 342,
             },
-            SnakeType::GearRickB => &SnakePieceIndices {
-                head: 345,
-                body_straight: 337,
-                body_curve: 341,
-                tail: 343,
-            },
-            SnakeType::GearPreWindowA => &SnakePieceIndices {
+            SnakeId::GearPreWindowA => &SnakePieceIndices {
                 head: 346,
                 body_straight: 336,
                 body_curve: 340,
                 tail: 342,
             },
-            SnakeType::GearPreWindowB => &SnakePieceIndices {
-                head: 347,
-                body_straight: 337,
-                body_curve: 341,
-                tail: 343,
-            },
-            SnakeType::EyeballBlueA => &SnakePieceIndices {
+            SnakeId::EyeballBlueA => &SnakePieceIndices {
                 head: 370,
                 body_straight: 368,
                 body_curve: 374,
                 tail: 372,
             },
-            SnakeType::EyeballBlueB => &SnakePieceIndices {
-                head: 371,
-                body_straight: 369,
-                body_curve: 375,
-                tail: 373,
-            },
-            SnakeType::EyeballYellowA => &SnakePieceIndices {
+            SnakeId::EyeballYellowA => &SnakePieceIndices {
                 head: 378,
                 body_straight: 376,
                 body_curve: 382,
                 tail: 380,
-            },
-            SnakeType::EyeballYellowB => &SnakePieceIndices {
-                head: 379,
-                body_straight: 377,
-                body_curve: 383,
-                tail: 381,
             },
         }
     }
@@ -105,30 +77,13 @@ impl SnakeType {
     fn load_snake(&self, asset_server: &AssetServer) -> SnakeHandles {
         self.segment_indices().load_snake(asset_server)
     }
-
-    #[inline(always)]
-    pub fn get_animation(&self) -> Option<SnakeType> {
-        match self {
-            SnakeType::GearWindowA => Some(SnakeType::GearWindowB),
-            SnakeType::GearWindowB => Some(SnakeType::GearWindowA),
-            SnakeType::GearRickA => Some(SnakeType::GearRickB),
-            SnakeType::GearRickB => Some(SnakeType::GearRickA),
-            SnakeType::GearPreWindowA => Some(SnakeType::GearPreWindowB),
-            SnakeType::GearPreWindowB => Some(SnakeType::GearPreWindowA),
-            SnakeType::EyeballBlueA => Some(SnakeType::EyeballBlueB),
-            SnakeType::EyeballBlueB => Some(SnakeType::EyeballBlueA),
-            SnakeType::EyeballYellowA => Some(SnakeType::EyeballYellowB),
-            SnakeType::EyeballYellowB => Some(SnakeType::EyeballYellowA),
-            _ => None,
-        }
-    }
 }
 
-struct SnakePieceIndices {
-    head: usize,
-    body_straight: usize,
-    body_curve: usize,
-    tail: usize,
+pub struct SnakePieceIndices {
+    pub head: usize,
+    pub body_straight: usize,
+    pub body_curve: usize,
+    pub tail: usize,
 }
 
 impl SnakePieceIndices {
@@ -155,18 +110,18 @@ impl SnakePieceIndices {
 }
 
 fn update_snake_texture(
-    snakes: Query<(&SnakeType, &Children)>,
-    textures: Res<SnakeTextureHandles>,
+    snakes: Query<(&Snake, &Children)>,
+    textures: Res<Assets<SnakeType>>,
     mut segments: Query<(&mut Sprite, &SnakePiece)>,
 ) {
-    for (snake_type, children) in &snakes {
-        let Some(snake_images) = textures.get(snake_type) else {
-            warn!("{:?} textures not loaded yet", snake_type);
+    for (snake, children) in &snakes {
+        let Some(snake_images) = textures.get(snake) else {
+            warn!("{} textures not loaded yet", snake);
             continue;
         };
         for child in children.iter() {
             if let Ok((mut sprite, piece)) = segments.get_mut(child) {
-                sprite.image = snake_images.get(piece);
+                sprite.image = snake_images.get_frame(snake.frame).get_segment(piece);
             }
         }
     }
@@ -258,7 +213,7 @@ fn update_snake_size(
 
 #[derive(Resource, Deref)]
 pub struct SnakeTextureHandles {
-    snakes: HashMap<SnakeType, SnakeHandles>,
+    snakes: HashMap<SnakeId, SnakeHandles>,
 }
 
 pub struct SnakeHandles {
@@ -282,7 +237,7 @@ impl SnakeHandles {
 impl SnakeTextureHandles {
     fn new(asset_server: &AssetServer) -> Self {
         let mut snakes = HashMap::new();
-        for snake_type in SnakeType::iter() {
+        for snake_type in SnakeId::iter() {
             snakes.insert(snake_type, snake_type.load_snake(asset_server));
         }
         SnakeTextureHandles { snakes }
@@ -403,7 +358,7 @@ impl FromWorld for AnimationTime {
 fn update_snake_animation_frame(
     animation_time: Res<AnimationTime>,
     mut accrued: Local<f32>,
-    mut snakes: Query<&mut SnakeType>,
+    mut snakes: Query<&mut Snake>,
     time: Res<Time<Real>>,
 ) {
     *accrued += time.delta_secs();
@@ -412,9 +367,48 @@ fn update_snake_animation_frame(
     } else {
         return;
     }
-    for mut snake_type in &mut snakes {
-        if let Some(next) = snake_type.get_animation() {
-            *snake_type = next;
+    for mut snake in &mut snakes {
+        snake.frame += 1;
+    }
+}
+
+pub enum SnakeBody {
+    Animated(Vec<SnakeFrame>),
+    Single(SnakeFrame),
+}
+
+impl SnakeBody {
+    /// Get the tail handle for this body<br/>
+    /// If animated, returns the tail of the first frame
+    pub fn tail(&self) -> Handle<Image> {
+        match self {
+            SnakeBody::Animated(frames) => frames[0].tail.clone(),
+            SnakeBody::Single(frame) => frame.tail.clone(),
+        }
+    }
+}
+
+pub struct SnakeFrame {
+    pub head: Handle<Image>,
+    pub body_straight: Handle<Image>,
+    pub body_curve: Handle<Image>,
+    pub tail: Handle<Image>,
+}
+
+impl SnakeFrame {
+    pub const EMPTY: Self = SnakeFrame {
+        head: Handle::Uuid(AssetId::<Image>::DEFAULT_UUID, PhantomData),
+        body_straight: Handle::Uuid(AssetId::<Image>::DEFAULT_UUID, PhantomData),
+        body_curve: Handle::Uuid(AssetId::<Image>::DEFAULT_UUID, PhantomData),
+        tail: Handle::Uuid(AssetId::<Image>::DEFAULT_UUID, PhantomData),
+    };
+
+    pub fn get_segment(&self, piece: &SnakePiece) -> Handle<Image> {
+        match piece {
+            SnakePiece::Head => self.head.clone(),
+            SnakePiece::BodyStraight => self.body_straight.clone(),
+            SnakePiece::BodyCurve => self.body_curve.clone(),
+            SnakePiece::Tail => self.tail.clone(),
         }
     }
 }

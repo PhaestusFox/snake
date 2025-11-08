@@ -1,4 +1,4 @@
-use bevy::window::WindowResized;
+use bevy::window::{WindowResized, WindowResolution};
 
 use super::*;
 
@@ -46,12 +46,12 @@ pub fn get_window_constraints() -> WindowResizeConstraints {
 }
 
 fn spawn_play_area_marker(mut commands: Commands) {
-    commands.spawn((
-        Transform::from_translation(Vec3::new(0.0, 0.0, -100.0)),
-        Sprite {
-            color: Color::linear_rgb(0.0, 0.3, 0.0),
-            custom_size: Some(Vec2::new(RESOLUTION.0 as f32, RESOLUTION.1 as f32)),
-            ..Default::default()
-        },
-    ));
+    // commands.spawn((
+    //     Transform::from_translation(Vec3::new(0.0, 0.0, -100.0)),
+    //     Sprite {
+    //         color: Color::linear_rgb(0.0, 0.3, 0.0),
+    //         custom_size: Some(Vec2::new(RESOLUTION.0 as f32, RESOLUTION.1 as f32)),
+    //         ..Default::default()
+    //     },
+    // ));
 }

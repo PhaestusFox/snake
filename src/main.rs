@@ -42,8 +42,6 @@ fn main() {
         app.add_plugins(debug::TestPowerPlugin);
     }
 
-    app.insert_resource(snake::SnakeSize::Small);
-
     app.add_plugins(collectables::CollectablesPlugin);
 
     app.add_plugins(utils::idk_qol_stuff);

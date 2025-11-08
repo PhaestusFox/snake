@@ -15,7 +15,7 @@ pub use input::PlayerSnake;
 use crate::WORLD_GRID_SIZE;
 
 #[derive(Component, DerefMut, Deref, Clone)]
-#[require(Transform, Visibility, FacingDirection)]
+#[require(Transform, Visibility, FacingDirection, SnakeSize)]
 pub struct Snake {
     #[deref]
     pub snake_type: Handle<SnakeType>,
@@ -57,8 +57,7 @@ pub struct SnakePlugin;
 impl Plugin for SnakePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(rendering::SnakeRenderPlugin)
-            .add_plugins(movement::plugin)
-            .init_resource::<SnakeSize>();
+            .add_plugins(movement::plugin);
 
         app.init_asset_loader::<asset::SnakeLoader>();
         app.init_asset::<asset::SnakeType>();
@@ -140,11 +139,9 @@ impl SnakeSegment {
             }
 
             // get the size of the snake from the parent, or fallback to global resource
-            let size = if let Some(size) = world.get::<SnakeSize>(parent) {
-                **size
-            } else {
-                **world.resource::<SnakeSize>()
-            };
+            let size = **world
+                .get::<SnakeSize>(parent)
+                .expect("SnakeSize is Required Componet");
 
             // get the snake type from the parent to determine textures
             let textures = if let Some(snake_type) = world.get::<Snake>(parent) {
@@ -225,7 +222,7 @@ impl SnakeId {
     }
 }
 
-#[derive(Resource, Component, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Component, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SnakeSize {
     #[default]
     Small,

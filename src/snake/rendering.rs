@@ -187,25 +187,14 @@ fn update_snake_shape(
 }
 
 fn update_snake_size(
-    mut snakes: Query<(&Children, &SnakeSize), Changed<SnakeSize>>,
-    mut fallback_segments: Query<&Children, (Without<SnakeSize>, With<Snake>)>,
+    mut snakes: Populated<(&Children, &SnakeSize), Changed<SnakeSize>>,
     mut sprites: Query<&mut Sprite>,
-    fallback_size: Res<SnakeSize>,
 ) {
     for (body, size) in &mut snakes {
         let size = **size;
         for segment in body.iter() {
             if let Ok(mut sprite) = sprites.get_mut(segment) {
                 sprite.custom_size = Some(Vec2::splat(size));
-            }
-        }
-    }
-    if fallback_size.is_changed() {
-        for snake in &mut fallback_segments {
-            for segment in snake.iter() {
-                if let Ok(mut sprite) = sprites.get_mut(segment) {
-                    sprite.custom_size = Some(Vec2::splat(**fallback_size));
-                }
             }
         }
     }
@@ -334,7 +323,7 @@ impl Connection {
                 rotation: -std::f32::consts::FRAC_PI_2,
             },
             _ => {
-                warn!("Not implemented: {next:?} {prev:?}");
+                // warn!("Not implemented: {next:?} {prev:?}");
                 Connection {
                     flip_x: false,
                     flip_y: false,

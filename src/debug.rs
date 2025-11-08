@@ -59,32 +59,25 @@ fn change_skin(
 }
 
 fn change_snake_size(
-    mut snake_size: ResMut<snake::SnakeSize>,
     input: Res<ButtonInput<KeyCode>>,
     // all snake with override size
-    mut snakes: Query<(&Children, Option<&mut SnakeSize>), With<PlayerSnake>>,
+    mut snakes: Query<(&Children, &mut SnakeSize), With<PlayerSnake>>,
     mut segments: Query<&mut Transform>,
 ) {
     let next: SnakeSize;
     let effect: fn(&mut SnakeSize);
     if input.just_pressed(KeyCode::PageUp) {
-        next = snake_size.up();
         effect = SnakeSize::inc;
     } else if input.just_pressed(KeyCode::PageDown) {
-        next = snake_size.down();
         effect = SnakeSize::dec;
     } else {
         return;
     };
 
-    for (body, size) in &mut snakes {
-        let old = *size.as_deref().unwrap_or(snake_size.as_ref());
-        let new = size
-            .map(|mut c| {
-                effect(&mut c);
-                *c
-            })
-            .unwrap_or(next);
+    for (body, mut size) in &mut snakes {
+        let old = *size;
+        effect(&mut size);
+        let new = *size;
         if new == old {
             continue;
         }
@@ -112,5 +105,4 @@ fn change_snake_size(
             seg_transform.translation.z = z;
         }
     }
-    *snake_size = next;
 }

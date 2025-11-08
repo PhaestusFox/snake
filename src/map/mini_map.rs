@@ -79,8 +79,7 @@ fn clear_mini_map(mut images: ResMut<Assets<Image>>, mini_map: Single<&ImageNode
 
 fn draw_player_on_mini_map(
     mut images: ResMut<Assets<Image>>,
-    player_snake: Single<(&Children, &MiniMapColor, Option<&SnakeSize>), With<PlayerSnake>>,
-    fallback_size: Res<SnakeSize>,
+    player_snake: Single<(&Children, &MiniMapColor, &SnakeSize), With<PlayerSnake>>,
     mini_map: Single<&ImageNode, With<MiniMap>>,
     segments: Query<&Transform>,
     map: Res<Map>,
@@ -90,8 +89,7 @@ fn draw_player_on_mini_map(
         return;
     };
     let (player_children, MiniMapColor(color), snake_size) = player_snake.into_inner();
-    let size = **snake_size.unwrap_or(&fallback_size);
-    let size_in_cells = (size / WORLD_GRID_SIZE) as u32;
+    let size_in_cells = (**snake_size / WORLD_GRID_SIZE) as u32;
     for segment in player_children.iter() {
         let Ok(segment_transform) = segments.get(segment) else {
             warn!("Failed to get player snake segment transform for mini map");
@@ -156,8 +154,7 @@ fn draw_collectable_on_mini_map(
 
 fn draw_other_snakes_on_mini_map(
     mut images: ResMut<Assets<Image>>,
-    snakes: Query<(&Children, Option<&MiniMapColor>, Option<&SnakeSize>), Without<PlayerSnake>>,
-    fallback_size: Res<SnakeSize>,
+    snakes: Query<(&Children, Option<&MiniMapColor>, &SnakeSize), Without<PlayerSnake>>,
     mini_map: Single<&ImageNode, With<MiniMap>>,
     segments: Query<&Transform>,
     map: Res<Map>,
@@ -167,7 +164,7 @@ fn draw_other_snakes_on_mini_map(
         return;
     };
     for (player_children, mini_map_color, snake_size) in snakes.iter() {
-        let size = **snake_size.unwrap_or(&fallback_size);
+        let size = **snake_size;
         let color = **mini_map_color.unwrap_or(&MiniMapColor(Color::linear_rgb(1., 0.0, 0.0)));
         let size_in_cells = (size / WORLD_GRID_SIZE) as u32;
         for segment in player_children.iter() {

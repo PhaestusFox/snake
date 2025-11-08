@@ -7,12 +7,11 @@ pub fn plugin(app: &mut App) {
 }
 
 pub fn move_snake(
-    mut snakes: Populated<(Option<&SnakeSize>, &Children, &FacingDirection), With<Snake>>,
+    mut snakes: Populated<(&SnakeSize, &Children, &FacingDirection), With<Snake>>,
     mut segments: Query<(&mut Transform, &mut FacingDirection), Without<Snake>>,
-    fallback_size: Res<SnakeSize>,
 ) {
     for (size, body, direction) in &mut snakes {
-        let size = **size.unwrap_or(&fallback_size);
+        let size = **size;
         let head = body[0];
         let Ok((_, mut head_facing)) = segments.get_mut(head) else {
             warn!("Failed to get head off Snake");
@@ -38,9 +37,8 @@ pub fn move_snake(
 }
 
 fn wrap_screen(
-    snakes: Query<(&Children, Option<&SnakeSize>), With<Snake>>,
+    snakes: Query<(&Children, &SnakeSize), With<Snake>>,
     mut snake_segments: Query<&mut Transform, With<SnakeSegment>>,
-    fallback_size: Res<SnakeSize>,
     window: Single<&Window, With<PrimaryWindow>>,
 ) {
     let width = window.width();
@@ -51,7 +49,7 @@ fn wrap_screen(
     let half_height = height / 2.;
 
     for (body, size) in &snakes {
-        let size = **size.unwrap_or(&fallback_size);
+        let size = **size;
         for segment in body {
             if let Ok(mut transform) = snake_segments.get_mut(*segment) {
                 if transform.translation.x > half_width {

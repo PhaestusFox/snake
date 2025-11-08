@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod collectables;
 pub mod debug;
 pub mod map;

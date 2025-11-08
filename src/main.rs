@@ -1,4 +1,9 @@
-use bevy::{app::FixedMain, asset::AssetPath, prelude::*, window::WindowResolution};
+use bevy::{
+    app::FixedMain,
+    asset::AssetPath,
+    prelude::*,
+    window::{CursorOptions, WindowResolution},
+};
 
 use sneck::{
     collectables::SpawnFood,
@@ -15,15 +20,8 @@ fn main() {
             //use nearest-neighbor scaling for pixel art
             .set(ImagePlugin::default_nearest())
             .set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Sneck".to_string(),
-                    resolution: utils::get_base_resolution(),
-                    resize_constraints: utils::get_window_constraints(),
-                    transparent: true,
-                    // decorations: false,
-                    window_level: bevy::window::WindowLevel::AlwaysOnTop,
-                    ..Default::default()
-                }),
+                primary_window: Some(get_basic_window()),
+                primary_cursor_options: get_basic_cursor_options(),
                 ..Default::default()
             }),
     );
@@ -40,11 +38,15 @@ fn main() {
     #[cfg(debug_assertions)]
     {
         app.add_plugins(debug::TestPowerPlugin);
+
+        app.add_systems(Update, mouse_clicked);
     }
 
     app.add_plugins(collectables::CollectablesPlugin);
 
     app.add_plugins(utils::idk_qol_stuff);
+
+    app.add_plugins(sneck::audio::AudioPlugin);
 
     app.run();
 }
@@ -98,4 +100,37 @@ fn spawn_ai_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None));
+}
+
+fn get_basic_window() -> Window {
+    Window {
+        title: "Sneck".to_string(),
+        resolution: utils::get_base_resolution(),
+        resize_constraints: utils::get_window_constraints(),
+        #[cfg(feature = "stream_mode")]
+        transparent: true,
+        #[cfg(feature = "stream_mode")]
+        decorations: false,
+        #[cfg(feature = "stream_mode")]
+        window_level: bevy::window::WindowLevel::AlwaysOnTop,
+        #[cfg(feature = "stream_mode")]
+        mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
+        ..Default::default()
+    }
+}
+
+fn get_basic_cursor_options() -> Option<CursorOptions> {
+    // #[cfg(feature = "stream_mode")]
+    // return Some(CursorOptions {
+    //     hit_test: false,
+    //     ..Default::default()
+    // });
+    // #[cfg(not(feature = "stream_mode"))]
+    None
+}
+
+fn mouse_clicked(buttons: Res<ButtonInput<MouseButton>>) {
+    if buttons.just_pressed(MouseButton::Left) {
+        println!("Mouse left button clicked");
+    }
 }

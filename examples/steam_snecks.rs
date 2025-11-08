@@ -11,15 +11,7 @@ fn main() {
             //use nearest-neighbor scaling for pixel art
             .set(ImagePlugin::default_nearest())
             .set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Sneck".to_string(),
-                    resolution: utils::get_base_resolution(),
-                    resize_constraints: utils::get_window_constraints(),
-                    transparent: true,
-                    // decorations: false,
-                    window_level: bevy::window::WindowLevel::AlwaysOnTop,
-                    ..Default::default()
-                }),
+                primary_window: Some(get_default_window()),
                 ..Default::default()
             }),
     );
@@ -47,4 +39,16 @@ fn spawn_camera(mut commands: Commands) {
     let projection = OrthographicProjection::default_2d();
 
     commands.spawn((Camera2d, Projection::Orthographic(projection)));
+}
+
+fn get_default_window() -> Window {
+    Window {
+        title: "Sneck".to_string(),
+        resolution: utils::get_base_resolution(),
+        resize_constraints: utils::get_window_constraints(),
+        transparent: true,
+        // decorations: false,
+        window_level: bevy::window::WindowLevel::AlwaysOnTop,
+        ..Default::default()
+    }
 }

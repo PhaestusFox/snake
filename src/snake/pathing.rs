@@ -49,13 +49,18 @@ impl PathFinding {
 }
 
 fn record_path(
-    player: Single<(&FacingDirection, &Snake, Option<&SnakeSize>), With<PlayerSnake>>,
-    mut new: Local<Option<Vec<FacingDirection>>>,
+    player: Single<(&FacingDirection, &Snake, Option<&SnakeSize>, &Children), With<PlayerSnake>>,
+    segment: Query<&Transform>,
+    mut new: Local<Option<(Vec<FacingDirection>, Vec3)>>,
     input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
 ) {
     if input.pressed(KeyCode::F7) {
-        *new = Some(Vec::new());
+        let Ok(segment) = segment.get(player.3[0]) else {
+            warn!("Player Snake has no head segment?");
+            return;
+        };
+        *new = Some((vec![*player.0], segment.translation));
         println!("Started recording path");
         return;
     }
@@ -111,17 +116,18 @@ fn record_path(
         }
     }
     if len == 0 {
-        path.push(*player.0);
+        path.0.push(*player.0);
     } else {
-        let mut new_snake = commands.spawn((
-            player.1.clone(),
-            PathFinding::FixedPath(new.take().unwrap()),
-        ));
+        let Some((path, start)) = new.take() else {
+            warn!("No recorded path to spawn snake from");
+            return;
+        };
+        let mut new_snake = commands.spawn((player.1.clone(), PathFinding::FixedPath(path)));
         if let Some(size) = player.2 {
             new_snake.insert(*size);
         }
         for _ in 0..len {
-            new_snake.with_child(SnakeSegment);
+            new_snake.with_child((SnakeSegment, Transform::from_translation(start)));
         }
     }
 }

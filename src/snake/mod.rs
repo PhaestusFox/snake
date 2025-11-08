@@ -12,7 +12,7 @@ mod rendering;
 
 pub use input::PlayerSnake;
 
-use crate::WORLD_GRID_SIZE;
+use crate::GRID_SIZE;
 
 #[derive(Component, DerefMut, Deref, Clone)]
 #[require(Transform, Visibility, FacingDirection, SnakeSize)]
@@ -235,11 +235,11 @@ pub enum SnakeSize {
 impl AsRef<f32> for SnakeSize {
     fn as_ref(&self) -> &f32 {
         match self {
-            SnakeSize::Tiny => &(WORLD_GRID_SIZE * 1.0),
-            SnakeSize::Small => &(WORLD_GRID_SIZE * 2.0),
-            SnakeSize::Medium => &(WORLD_GRID_SIZE * 3.0),
-            SnakeSize::Large => &(WORLD_GRID_SIZE * 4.0),
-            SnakeSize::Colossal => &(WORLD_GRID_SIZE * 8.0),
+            SnakeSize::Tiny => &(GRID_SIZE * 1.0),
+            SnakeSize::Small => &(GRID_SIZE * 2.0),
+            SnakeSize::Medium => &(GRID_SIZE * 3.0),
+            SnakeSize::Large => &(GRID_SIZE * 4.0),
+            SnakeSize::Colossal => &(GRID_SIZE * 8.0),
         }
     }
 }
@@ -280,7 +280,7 @@ impl SnakeSize {
         *self = self.down();
     }
 
-    pub fn stride(&self) -> usize {
+    pub fn stride(&self) -> u32 {
         match self {
             SnakeSize::Tiny => 1,
             SnakeSize::Small => 2,
@@ -292,7 +292,7 @@ impl SnakeSize {
 
     pub fn offset(&self) -> f32 {
         if self.stride().is_multiple_of(2) {
-            WORLD_GRID_SIZE * 0.5
+            GRID_SIZE * 0.5
         } else {
             0.0
         }

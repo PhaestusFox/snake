@@ -54,8 +54,8 @@ fn spawn_mini_map(mut commands: Commands, mut images: ResMut<Assets<Image>>, map
             position_type: PositionType::Absolute,
             width: Val::VMin(25.),
             height: Val::VMin(25.),
-            min_height: Val::Px(map.size().y as f32),
-            min_width: Val::Px(map.size().x as f32),
+            min_height: Val::Px(map.size().y as f32 * 20.),
+            min_width: Val::Px(map.size().x as f32 * 20.),
             ..Default::default()
         },
         ImageNode {
@@ -89,34 +89,14 @@ fn draw_player_on_mini_map(
         return;
     };
     let (player_children, MiniMapColor(color), snake_size) = player_snake.into_inner();
-    let size_in_cells = (**snake_size / WORLD_GRID_SIZE) as u32;
-    for segment in player_children.iter() {
-        let Ok(segment_transform) = segments.get(segment) else {
-            warn!("Failed to get player snake segment transform for mini map");
-            continue;
-        };
-        let mx =
-            (segment_transform.translation.x / WORLD_GRID_SIZE.trunc()) as i32 + (map.size().x / 2);
-        let my =
-            (map.size().y / 2) - (segment_transform.translation.y / WORLD_GRID_SIZE.trunc()) as i32;
-        if mx < 0
-            || my < 0
-            || mx as u32 >= mini_map_image.width()
-            || my as u32 >= mini_map_image.height()
-        {
-            continue;
-        }
-        for dx in 0..size_in_cells {
-            for dy in 0..size_in_cells {
-                let x = (mx as u32).saturating_add(dx);
-                let y = (my as u32).saturating_add(dy);
-                if x >= mini_map_image.width() || y >= mini_map_image.height() {
-                    continue;
-                }
-                _ = mini_map_image.set_color_at(x, y, *color);
-            }
-        }
-    }
+    draw_snake_on_map(
+        mini_map_image,
+        &segments,
+        player_children,
+        *snake_size,
+        *color,
+        map.size(),
+    );
 }
 
 fn draw_collectable_on_mini_map(
@@ -130,25 +110,13 @@ fn draw_collectable_on_mini_map(
         return;
     };
     for (transform, MiniMapColor(color), size) in collectables.iter() {
-        let mx = (transform.translation.x / WORLD_GRID_SIZE.trunc()) as i32 + (map.size().x / 2);
-        let my = (map.size().y / 2) - (transform.translation.y / WORLD_GRID_SIZE.trunc()) as i32;
-        if mx < 0
-            || my < 0
-            || mx as u32 >= mini_map_image.width()
-            || my as u32 >= mini_map_image.height()
-        {
-            continue;
-        }
-        for dx in 0..size.0.x {
-            for dy in 0..size.0.y {
-                let x = (mx as u32).saturating_add(dx);
-                let y = (my as u32).saturating_add(dy);
-                if x >= mini_map_image.width() || y >= mini_map_image.height() {
-                    continue;
-                }
-                _ = mini_map_image.set_color_at(x, y, *color);
-            }
-        }
+        draw_object_on_mini_map(
+            mini_map_image,
+            transform.translation,
+            *size,
+            *color,
+            map.size(),
+        );
     }
 }
 
@@ -163,36 +131,79 @@ fn draw_other_snakes_on_mini_map(
         warn!("Failed to get mini map image to draw player");
         return;
     };
-    for (player_children, mini_map_color, snake_size) in snakes.iter() {
-        let size = **snake_size;
-        let color = **mini_map_color.unwrap_or(&MiniMapColor(Color::linear_rgb(1., 0.0, 0.0)));
-        let size_in_cells = (size / WORLD_GRID_SIZE) as u32;
-        for segment in player_children.iter() {
-            let Ok(segment_transform) = segments.get(segment) else {
-                warn!("Failed to get player snake segment transform for mini map");
-                continue;
-            };
-            let mx = (segment_transform.translation.x / WORLD_GRID_SIZE.trunc()) as i32
-                + (map.size().x / 2);
-            let my = (map.size().y / 2)
-                - (segment_transform.translation.y / WORLD_GRID_SIZE.trunc()) as i32;
-            if mx < 0
-                || my < 0
-                || mx as u32 >= mini_map_image.width()
-                || my as u32 >= mini_map_image.height()
-            {
+    for (snake, mini_map_color, snake_size) in snakes.iter() {
+        draw_snake_on_map(
+            mini_map_image,
+            &segments,
+            snake,
+            *snake_size,
+            mini_map_color.map_or(Color::linear_rgb(1., 0.0, 0.0), |c| c.0),
+            map.size(),
+        );
+    }
+}
+
+fn draw_snake_on_map(
+    image: &mut Image,
+    segments: &Query<&Transform>,
+    snake: &Children,
+    size: SnakeSize,
+    color: Color,
+    map_size: IVec2,
+) {
+    let size = ObjectSize(UVec2::splat(size.stride()));
+    for segment in snake.iter() {
+        let Ok(segment_transform) = segments.get(segment) else {
+            warn!("Failed to get player snake segment transform for mini map");
+            continue;
+        };
+        let translation = segment_transform.translation + size.offset().extend(0.);
+        let start = calculate_mini_map_start(translation, size, map_size);
+        fill_in_mini_map(image, start, size, color);
+    }
+}
+
+fn draw_object_on_mini_map(
+    image: &mut Image,
+    center: Vec3,
+    size: ObjectSize,
+    color: Color,
+    offset: IVec2,
+) {
+    let start = calculate_mini_map_start(center, size, offset);
+    fill_in_mini_map(image, start, size, color);
+}
+
+fn calculate_mini_map_start(center: Vec3, size: ObjectSize, map_size: IVec2) -> IVec2 {
+    let mx = (center.x / GRID_SIZE).floor() as i32 + map_size.x / 2;
+    let mut my = (map_size.y / 2) - (center.y / GRID_SIZE).floor() as i32;
+    if size.y.is_multiple_of(2) {
+        my -= 1;
+    }
+    IVec2 { x: mx, y: my }
+}
+
+fn fill_in_mini_map(image: &mut Image, start: IVec2, size: ObjectSize, color: Color) {
+    let rx = (size.x / 2) as i32;
+    let ry = (size.y / 2) as i32;
+    let ry = if size.y.is_multiple_of(2) {
+        -ry + 1..=ry
+    } else {
+        -ry..=ry
+    };
+    let rx = if size.x.is_multiple_of(2) {
+        -rx + 1..=rx
+    } else {
+        -rx..=rx
+    };
+    for dx in rx {
+        for dy in ry.clone() {
+            let x = start.x.saturating_add(dx) as u32;
+            let y = start.y.saturating_add(dy) as u32;
+            if x >= image.width() || y >= image.height() {
                 continue;
             }
-            for dx in 0..size_in_cells {
-                for dy in 0..size_in_cells {
-                    let x = (mx as u32).saturating_add(dx);
-                    let y = (my as u32).saturating_add(dy);
-                    if x >= mini_map_image.width() || y >= mini_map_image.height() {
-                        continue;
-                    }
-                    _ = mini_map_image.set_color_at(x, y, color);
-                }
-            }
+            _ = image.set_color_at(x, y, color);
         }
     }
 }

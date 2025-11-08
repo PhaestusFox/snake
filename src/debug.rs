@@ -2,7 +2,7 @@ use bevy::{asset::ron::de, ecs::relationship::Relationship};
 use strum::IntoEnumIterator;
 
 use crate::{
-    map::{ObjectSize, mini_map::MiniMapColor},
+    map::{Map, ObjectSize, mini_map::MiniMapColor},
     snake::{PlayerSnake, Snake, SnakeSegment, SnakeSize},
 };
 
@@ -127,22 +127,47 @@ fn change_snake_size(
     }
 }
 
-fn draw_debug_square(mut commands: Commands) {
-    for i in SnakeSize::iter() {
-        let size = i.as_ref() * 2.;
-
-        commands.spawn((
-            Sprite {
-                color: Color::hsl(360. / i.stride() as f32, 1., 0.5),
-                custom_size: Some(Vec2::splat(size)),
-                ..default()
+fn draw_debug_square(mut commands: Commands, map: Res<Map>) {
+    commands.spawn((
+        Sprite {
+            color: Color::WHITE,
+            custom_size: Some(map.size().as_vec2() * GRID_SIZE),
+            ..default()
+        },
+        Transform::from_translation(Vec3 {
+            x: if map.size().x % 2 == 0 {
+                -GRID_SIZE * 0.5
+            } else {
+                0.0
             },
-            Transform::from_translation(Vec3::new(
-                i.offset() * 2.,
-                i.offset() * 2.,
-                -(i.stride() as f32),
-            )),
-        ));
+            y: if map.size().y % 2 == 0 {
+                -GRID_SIZE * 0.5
+            } else {
+                0.0
+            },
+            z: -100.0,
+        }),
+    ));
+    for x in 0..map.size().x {
+        for y in 0..map.size().y {
+            if (x + y) % 2 == 0 {
+                continue;
+            }
+            let x = x - map.size().x / 2;
+            let y = y - map.size().y / 2;
+            commands.spawn((
+                Sprite {
+                    color: Color::linear_rgb(0.0, 0.1, 0.0),
+                    custom_size: Some(Vec2::splat(GRID_SIZE)),
+                    ..default()
+                },
+                Transform::from_translation(Vec3::new(
+                    x as f32 * GRID_SIZE,
+                    y as f32 * GRID_SIZE,
+                    -99.0,
+                )),
+            ));
+        }
     }
 }
 
@@ -159,8 +184,8 @@ fn spawn_collider_bounds(
         commands.entity(entity).with_child((
             Sprite {
                 custom_size: Some(Vec2::new(
-                    size.0.x as f32 * WORLD_GRID_SIZE,
-                    size.0.y as f32 * WORLD_GRID_SIZE,
+                    size.0.x as f32 * GRID_SIZE,
+                    size.0.y as f32 * GRID_SIZE,
                 )),
                 color,
                 ..Default::default()

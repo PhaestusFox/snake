@@ -5,7 +5,8 @@ use bevy::{
 };
 
 use crate::{
-    map::{ObjectSize, mini_map::MiniMapColor},
+    GRID_SIZE,
+    map::{Map, ObjectSize, mini_map::MiniMapColor},
     snake::{Snake, SnakeSegment, SnakeSize},
 };
 
@@ -56,7 +57,7 @@ pub struct Collider;
 fn get_collisions(
     snakes: Query<(Entity, &SnakeSize, &Children), With<Snake>>,
     collectables: Query<(Entity, &Transform, &ObjectSize), (With<Collectable>, With<Collider>)>,
-    segments: Query<&Transform, Without<Snake>>,
+    segments: Query<&GlobalTransform, Without<Snake>>,
     mut commands: Commands,
 ) {
     for (entity, size, body) in snakes.iter() {
@@ -71,7 +72,7 @@ fn get_collisions(
         };
         for (c_entity, c_pos, collider) in &collectables {
             if check_aabb_collision(
-                snake.translation,
+                snake.translation(),
                 Vec2::splat(size / 2.),
                 c_pos.translation,
                 collider.size() / 2.,
@@ -117,17 +118,16 @@ impl FromWorld for CollectableSprites {
 #[derive(Event)]
 pub struct SpawnFood;
 
-fn spawn_food(
-    _: On<SpawnFood>,
-    mut commands: Commands,
-    window: Single<&Window, With<PrimaryWindow>>,
-) {
-    let x = (rand::random::<f32>() - 0.5) * window.width();
-    let y = (rand::random::<f32>() - 0.5) * window.height();
-
+fn spawn_food(_: On<SpawnFood>, mut commands: Commands, map: Res<Map>) {
+    let rx = map.size().x / 2;
+    let ry = map.size().y / 2;
+    let x = rand::random_range(-rx..rx);
+    let y = rand::random_range(-ry..ry);
+    let size = ObjectSize::new(UVec2::splat(2));
+    let pos = IVec2::new(x, y).as_vec2() * GRID_SIZE + size.offset();
     commands.spawn((
         Collectable::Apple,
-        Transform::from_translation(Vec3::new(x, y, 0.0)),
+        Transform::from_translation(pos.extend(0.0)),
         ObjectSize::new(UVec2::splat(2)),
         MiniMapColor(Color::linear_rgb(0.1, 0.8, 0.1)),
     ));

@@ -18,7 +18,7 @@ impl Map {
 impl FromWorld for Map {
     fn from_world(_world: &mut World) -> Self {
         Map {
-            size: UVec2::new(100, 100),
+            size: UVec2::new(21, 21),
         }
     }
 }
@@ -32,7 +32,7 @@ impl Plugin for MapPlugin {
     }
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Deref)]
 #[component(on_add = Self::on_add)]
 pub struct ObjectSize(pub UVec2);
 
@@ -44,7 +44,7 @@ impl Default for ObjectSize {
 
 impl ObjectSize {
     pub fn size(&self) -> Vec2 {
-        self.0.as_vec2() * crate::WORLD_GRID_SIZE
+        self.0.as_vec2() * crate::GRID_SIZE
     }
 
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
@@ -58,5 +58,20 @@ impl ObjectSize {
 
     pub fn new(size: UVec2) -> Self {
         ObjectSize(size)
+    }
+
+    pub fn offset(&self) -> Vec2 {
+        Vec2 {
+            x: if self.x.is_multiple_of(2) {
+                GRID_SIZE * 0.5
+            } else {
+                0.0
+            },
+            y: if self.y.is_multiple_of(2) {
+                GRID_SIZE * 0.5
+            } else {
+                0.0
+            },
+        }
     }
 }

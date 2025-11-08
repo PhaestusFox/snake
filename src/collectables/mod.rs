@@ -24,11 +24,28 @@ impl Plugin for CollectablesPlugin {
     }
 }
 // x = 14
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, strum_macros::EnumIter)]
 #[require(Sprite, Collider)]
 #[component(on_add = Self::on_add)]
 pub enum Collectable {
-    Apple, // 6,17
+    Apple,       // 6,17
+    Cherry,      // 4, 17
+    DragonFruit, // 8, 17
+    Pumpkin,     // 10, 17
+    PepperRed,   // 11, 17
+    Pair,        // 12, 17
+    Turnip,      // 13, 17
+    Tomato,      // 5, 18
+    EggPlant,    // 5, 19
+    Radish,      // 4, 18
+    Onion,       // 3, 18
+    Lemon,       // 3, 17
+    Cheese,      // 3, 16
+    Fish,        // 2, 16
+    Lime,        // 2, 17
+    Chicken,     // 1, 16
+    Meat,        // 0, 16
+    EggsFried,   // 0, 15
 }
 
 impl Collectable {
@@ -36,17 +53,63 @@ impl Collectable {
     const fn pos(&self) -> UVec2 {
         match self {
             Collectable::Apple => UVec2::new(6, 17),
+            Collectable::Cherry => UVec2::new(4, 17),
+            Collectable::DragonFruit => UVec2::new(8, 17),
+            Collectable::Pumpkin => UVec2::new(10, 17),
+            Collectable::PepperRed => UVec2::new(11, 17),
+            Collectable::Pair => UVec2::new(12, 17),
+            Collectable::Turnip => UVec2::new(13, 17),
+            Collectable::Tomato => UVec2::new(5, 18),
+            Collectable::EggPlant => UVec2::new(5, 19),
+            Collectable::Radish => UVec2::new(4, 18),
+            Collectable::Onion => UVec2::new(3, 18),
+            Collectable::Lemon => UVec2::new(3, 17),
+            Collectable::Cheese => UVec2::new(3, 16),
+            Collectable::Fish => UVec2::new(2, 16),
+            Collectable::Lime => UVec2::new(2, 17),
+            Collectable::Chicken => UVec2::new(1, 16),
+            Collectable::Meat => UVec2::new(0, 16),
+            Collectable::EggsFried => UVec2::new(0, 15),
         }
     }
 
     const fn index(&self) -> usize {
-        match self {
-            Collectable::Apple => 6 + 17 * 14,
-        }
+        let pos = self.pos();
+        (pos.y * 14 + pos.x) as usize
+    }
+
+    const fn color(&self) -> Color {
+        use bevy::color::palettes::css::*;
+        Color::Srgba(match self {
+            Collectable::Apple => GREEN,
+            Collectable::Cherry => DARK_RED,
+            Collectable::DragonFruit => MAROON,
+            Collectable::Pumpkin => ORANGE,
+            Collectable::PepperRed => RED,
+            Collectable::Pair => DARK_GREEN,
+            Collectable::Turnip => DARK_RED,
+            Collectable::Tomato => CRIMSON,
+            Collectable::EggPlant => PURPLE,
+            Collectable::Radish => RED,
+            Collectable::Onion => BROWN,
+            Collectable::Lemon => YELLOW,
+            Collectable::Cheese => YELLOW,
+            Collectable::Fish => AQUAMARINE,
+            Collectable::Lime => LIME,
+            Collectable::Chicken => BEIGE,
+            Collectable::Meat => RED,
+            Collectable::EggsFried => YELLOW,
+        })
     }
 
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
-        // todo set color on minimap based of Self
+        let collectable = *world
+            .get::<Self>(ctx.entity)
+            .expect("Collectable requires Sprite");
+        world
+            .commands()
+            .entity(ctx.entity)
+            .insert(MiniMapColor(collectable.color()));
     }
 }
 
@@ -78,7 +141,7 @@ fn get_collisions(
                 collider.size() / 2.,
             ) {
                 commands.entity(c_entity).despawn();
-                commands.trigger(SpawnFood);
+                commands.trigger(SpawnFood::Random);
                 commands.entity(entity).with_child(SnakeSegment);
             }
         }
@@ -116,9 +179,26 @@ impl FromWorld for CollectableSprites {
 }
 
 #[derive(Event)]
-pub struct SpawnFood;
+pub enum SpawnFood {
+    Random,
+    Specific(Collectable),
+}
 
-fn spawn_food(_: On<SpawnFood>, mut commands: Commands, map: Res<Map>) {
+impl SpawnFood {
+    fn as_collectable(&self) -> Collectable {
+        match self {
+            SpawnFood::Random => {
+                use rand::seq::IteratorRandom;
+                <Collectable as strum::IntoEnumIterator>::iter()
+                    .choose(&mut rand::rng())
+                    .expect("There to always be atleast one type of collectable")
+            }
+            SpawnFood::Specific(c) => *c,
+        }
+    }
+}
+
+fn spawn_food(food: On<SpawnFood>, mut commands: Commands, map: Res<Map>) {
     let rx = map.size().x / 2;
     let ry = map.size().y / 2;
     let x = rand::random_range(-rx..rx);
@@ -126,7 +206,7 @@ fn spawn_food(_: On<SpawnFood>, mut commands: Commands, map: Res<Map>) {
     let size = ObjectSize::new(UVec2::splat(2));
     let pos = IVec2::new(x, y).as_vec2() * GRID_SIZE + size.offset();
     commands.spawn((
-        Collectable::Apple,
+        food.as_collectable(),
         Transform::from_translation(pos.extend(0.0)),
         ObjectSize::new(UVec2::splat(2)),
         MiniMapColor(Color::linear_rgb(0.1, 0.8, 0.1)),

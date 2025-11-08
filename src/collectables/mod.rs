@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use crate::{
-    map::mini_map::MiniMapColor,
+    map::{ObjectSize, mini_map::MiniMapColor},
     snake::{Snake, SnakeSegment, SnakeSize},
 };
 
@@ -45,32 +45,22 @@ impl Collectable {
     }
 
     fn on_add(mut world: DeferredWorld, ctx: HookContext) {
-        let size = **world
-            .get::<Collider>(ctx.entity)
-            .expect("Collectable requires Collider");
-        if let Some(mut sprite) = world.get_mut::<Sprite>(ctx.entity) {
-            sprite.custom_size = Some(size);
-        }
+        // todo set color on minimap based of Self
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub struct Collider(Vec2);
-
-impl Default for Collider {
-    fn default() -> Self {
-        Collider(Vec2::splat(16.0))
-    }
-}
+#[derive(Component, Default)]
+#[require(ObjectSize)]
+pub struct Collider;
 
 fn get_collisions(
-    snakes: Query<(Entity, Option<&SnakeSize>, &Children), With<Snake>>,
-    collectables: Query<(Entity, &Transform, &Collider), With<Collectable>>,
+    snakes: Query<(Entity, &SnakeSize, &Children), With<Snake>>,
+    collectables: Query<(Entity, &Transform, &ObjectSize), (With<Collectable>, With<Collider>)>,
     segments: Query<&Transform, Without<Snake>>,
     mut commands: Commands,
 ) {
     for (entity, size, body) in snakes.iter() {
-        let size = **size.unwrap_or(&SnakeSize::default());
+        let size = **size;
         let Some(&head) = body.first() else {
             warn!("Snake has no segments");
             continue;
@@ -82,9 +72,9 @@ fn get_collisions(
         for (c_entity, c_pos, collider) in &collectables {
             if check_aabb_collision(
                 snake.translation,
-                Vec2::splat(size),
+                Vec2::splat(size / 2.),
                 c_pos.translation,
-                **collider,
+                collider.size() / 2.,
             ) {
                 commands.entity(c_entity).despawn();
                 commands.trigger(SpawnFood);
@@ -138,8 +128,7 @@ fn spawn_food(
     commands.spawn((
         Collectable::Apple,
         Transform::from_translation(Vec3::new(x, y, 0.0)),
-        Collider(Vec2::splat(32.0)),
-        crate::map::ObjectSize(UVec2::splat(2)),
+        ObjectSize::new(UVec2::splat(2)),
         MiniMapColor(Color::linear_rgb(0.1, 0.8, 0.1)),
     ));
 }

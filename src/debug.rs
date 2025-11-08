@@ -1,6 +1,10 @@
+use bevy::{asset::ron::de, ecs::relationship::Relationship};
 use strum::IntoEnumIterator;
 
-use crate::snake::{PlayerSnake, Snake, SnakeSize};
+use crate::{
+    map::{ObjectSize, mini_map::MiniMapColor},
+    snake::{PlayerSnake, Snake, SnakeSegment, SnakeSize},
+};
 
 use super::*;
 
@@ -19,6 +23,19 @@ impl Plugin for TestPowerPlugin {
         );
 
         app.add_systems(Startup, draw_debug_square);
+
+        app.add_systems(OnEnter(DebugRenderMode::Colliders), spawn_collider_bounds)
+            .add_systems(
+                Update,
+                add_new_colliders_on_spawning
+                    .run_if(in_state(DebugRenderMode::Colliders))
+                    .in_set(DebugOnlySystems),
+            )
+            .init_state::<DebugState>()
+            .init_state::<DebugRenderMode>()
+            .add_systems(Last, toggle_debug)
+            .add_systems(Update, turn_on_colliders_render.in_set(DebugOnlySystems))
+            .configure_sets(Update, DebugOnlySystems.run_if(in_state(DebugState::On)));
     }
 }
 
@@ -128,3 +145,162 @@ fn draw_debug_square(mut commands: Commands) {
         ));
     }
 }
+
+fn spawn_collider_bounds(
+    mut commands: Commands,
+    object: Query<(Entity, &ObjectSize, Option<&MiniMapColor>)>,
+    snakes: Query<(&Children, &SnakeSize, Option<&MiniMapColor>)>,
+) {
+    for (entity, size, color) in object.iter() {
+        let color = color
+            .map(|c| **c)
+            .unwrap_or(Color::linear_rgba(1.0, 0.0, 1.0, 0.3))
+            .with_alpha(0.3);
+        commands.entity(entity).with_child((
+            Sprite {
+                custom_size: Some(Vec2::new(
+                    size.0.x as f32 * WORLD_GRID_SIZE,
+                    size.0.y as f32 * WORLD_GRID_SIZE,
+                )),
+                color,
+                ..Default::default()
+            },
+            DespawnOnExit(DebugState::On),
+            DebugRender::Colliders,
+        ));
+    }
+    for (children, snake_size, color) in snakes.iter() {
+        let size = **snake_size;
+        let color = color
+            .map(|c| **c)
+            .unwrap_or(Color::linear_rgba(0.0, 1.0, 1.0, 0.3))
+            .with_alpha(0.3);
+        for segment in children.iter() {
+            commands.entity(segment).with_child((
+                Sprite {
+                    custom_size: Some(Vec2::splat(size)),
+                    color,
+                    ..Default::default()
+                },
+                DespawnOnExit(DebugState::On),
+                DebugRender::Colliders,
+            ));
+        }
+    }
+}
+
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
+#[component(on_add = Self::dedupe)]
+enum DebugRender {
+    Colliders,
+}
+impl DebugRender {
+    fn dedupe(mut world: bevy::ecs::world::DeferredWorld, ctx: bevy::ecs::lifecycle::HookContext) {
+        // Find the parent entity
+        let Some(parent) = world.get::<ChildOf>(ctx.entity).cloned() else {
+            return;
+        };
+        // get all other children of the parent
+        let Some(siblings) = world.get::<Children>(parent.get()) else {
+            return;
+        };
+        let mode = *world.get::<DebugRender>(ctx.entity).expect("This is Self");
+        for sibling in siblings.iter() {
+            // skip self
+            if sibling == ctx.entity {
+                continue;
+            }
+            // check if sibling is the same debug object type
+            if let Some(other_mode) = world.get::<DebugRender>(sibling)
+                && mode.eq(other_mode)
+            {
+                // remove self since is duplicate
+                world.commands().entity(ctx.entity).despawn();
+                return;
+            }
+        }
+    }
+}
+
+#[derive(States, Default, Debug, Hash, PartialEq, Eq, Clone)]
+enum DebugState {
+    #[default]
+    Off,
+    On,
+}
+
+#[derive(States, Default, Debug, Hash, PartialEq, Eq, Clone)]
+enum DebugRenderMode {
+    #[default]
+    None,
+    Colliders,
+}
+
+fn toggle_debug(
+    mut debug_state: ResMut<NextState<DebugState>>,
+    current: Res<State<DebugState>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    if input.just_pressed(KeyCode::Backquote) {
+        if let DebugState::On = current.get() {
+            debug_state.set(DebugState::Off);
+        } else {
+            debug_state.set(DebugState::On);
+        }
+    }
+}
+
+fn turn_on_colliders_render(
+    mut debug_state: ResMut<NextState<DebugRenderMode>>,
+    mut debug_render_mode: ResMut<State<DebugRenderMode>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    if input.just_pressed(KeyCode::F9) {
+        *debug_render_mode = State::new(DebugRenderMode::None);
+        debug_state.set(DebugRenderMode::Colliders);
+    }
+}
+
+fn add_new_colliders_on_spawning(
+    mut commands: Commands,
+    new_objects: Query<(Entity, &ObjectSize, Option<&MiniMapColor>), Added<ObjectSize>>,
+    snakes: Query<(&SnakeSize, Option<&MiniMapColor>)>,
+    new_snakes: Query<(Entity, &ChildOf), Added<SnakeSegment>>,
+) {
+    for (entity, size, color) in new_objects.iter() {
+        commands.entity(entity).with_child((
+            Sprite {
+                custom_size: Some(size.size()),
+                color: color
+                    .map(|v| **v)
+                    .unwrap_or(Color::linear_rgba(1.0, 0.0, 1.0, 0.3))
+                    .with_alpha(0.3),
+                ..Default::default()
+            },
+            DespawnOnExit(DebugState::On),
+            DebugRender::Colliders,
+        ));
+    }
+    for (segment, snake) in new_snakes.iter() {
+        let Ok((size, color)) = snakes.get(snake.get()) else {
+            warn!("Failed to get snake size for new segment debug collider");
+            continue;
+        };
+        let size = **size;
+        commands.entity(segment).with_child((
+            Sprite {
+                custom_size: Some(Vec2::splat(size)),
+                color: color
+                    .map(|v| **v)
+                    .unwrap_or(Color::linear_rgba(1.0, 0.0, 1.0, 0.3))
+                    .with_alpha(0.3),
+                ..Default::default()
+            },
+            DespawnOnExit(DebugState::On),
+            DebugRender::Colliders,
+        ));
+    }
+}
+
+#[derive(SystemSet, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+struct DebugOnlySystems;

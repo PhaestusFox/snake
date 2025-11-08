@@ -300,7 +300,7 @@ impl SnakeSize {
 }
 
 #[derive(Component, Default)]
-enum SnakePiece {
+pub enum SnakePiece {
     Head,
     BodyStraight,
     BodyCurve,

@@ -83,8 +83,13 @@ fn spawn_ai_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
             Transform::default(),
             FacingDirection::Right,
             SnakeSize::Medium,
+            snake::PathFinding::FixedPath(vec![
+                FacingDirection::Up,
+                FacingDirection::Left,
+                FacingDirection::Down,
+                FacingDirection::Right,
+            ]),
         ))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))
         .with_child((snake::SnakeSegment, FacingDirection::None))

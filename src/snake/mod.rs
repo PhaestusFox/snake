@@ -14,8 +14,8 @@ pub use input::PlayerSnake;
 
 use crate::WORLD_GRID_SIZE;
 
-#[derive(Component, DerefMut, Deref)]
-#[require(Transform, Visibility)]
+#[derive(Component, DerefMut, Deref, Clone)]
+#[require(Transform, Visibility, FacingDirection)]
 pub struct Snake {
     #[deref]
     pub snake_type: Handle<SnakeType>,
@@ -31,7 +31,7 @@ impl From<&Snake> for AssetId<SnakeType> {
 impl std::fmt::Display for Snake {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.snake_type {
-            Handle::Uuid(id, _) => write!(f, "Snake({})", id),
+            Handle::Uuid(id, _) => write!(f, "Snake({id})"),
             Handle::Strong(ref id) => {
                 let Ok(Some(path)) = id.path::<Option<bevy::asset::AssetPath<'static>>>("path")
                 else {
@@ -64,6 +64,8 @@ impl Plugin for SnakePlugin {
         app.init_asset::<asset::SnakeType>();
 
         app.add_plugins(input::SnakeInputPlugin);
+
+        app.add_plugins(pathing::plugin);
     }
 }
 
@@ -290,3 +292,6 @@ enum SnakePiece {
 mod asset;
 
 pub use asset::SnakeType;
+
+mod pathing;
+pub use pathing::PathFinding;

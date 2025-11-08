@@ -38,7 +38,7 @@ fn toggle_single_step(input: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Vi
 }
 
 fn change_skin(
-    mut snakes: Query<&mut Snake>,
+    mut snakes: Query<&mut Snake, With<PlayerSnake>>,
     input: Res<ButtonInput<KeyCode>>,
     snake_types: Res<Assets<snake::SnakeType>>,
     asset_server: Res<AssetServer>,

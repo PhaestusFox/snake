@@ -3,6 +3,7 @@ use bevy::window::PrimaryWindow;
 use super::*;
 
 pub fn plugin(app: &mut App) {
+    app.add_systems(First, correct_local_snake_grid_to_global_grid);
     app.add_systems(FixedUpdate, (move_snake, wrap_screen).chain());
 }
 
@@ -32,7 +33,7 @@ pub fn move_snake(
             warn!("Failed to get head off Snake");
             continue;
         };
-        head_transform.translation += direction.to_vec() * size;
+        head_transform.translation += direction.move_vec() * size;
     }
 }
 
@@ -49,21 +50,31 @@ fn wrap_screen(
     let half_height = height / 2.;
 
     for (body, size) in &snakes {
-        let size = **size;
+        let segment_size = **size;
         for segment in body {
             if let Ok(mut transform) = snake_segments.get_mut(*segment) {
-                if transform.translation.x > half_width {
-                    transform.translation.x -= width + size;
-                } else if transform.translation.x < -half_width {
-                    transform.translation.x += width + size;
+                let translation = transform.translation;
+                if translation.x > half_width + size.offset() {
+                    transform.translation.x -= width + segment_size;
+                } else if translation.x < -half_width - size.offset() {
+                    transform.translation.x += width + segment_size;
                 }
 
-                if transform.translation.y > half_height {
-                    transform.translation.y -= height + size;
-                } else if transform.translation.y < -half_height {
-                    transform.translation.y += height + size;
+                if translation.y > half_height + size.offset() {
+                    transform.translation.y -= height + segment_size;
+                } else if translation.y < -half_height - size.offset() {
+                    transform.translation.y += height + segment_size;
                 }
             }
         }
+    }
+}
+
+fn correct_local_snake_grid_to_global_grid(
+    mut snakes: Populated<(&mut Transform, &SnakeSize), Changed<SnakeSize>>,
+) {
+    for (mut transform, size) in &mut snakes {
+        transform.translation.x = size.offset();
+        transform.translation.y = size.offset();
     }
 }

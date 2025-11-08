@@ -89,7 +89,7 @@ impl FacingDirection {
         }
     }
 
-    pub fn to_vec(self) -> Vec3 {
+    pub fn move_vec(self) -> Vec3 {
         match self {
             FacingDirection::Right => Vec3::new(1.0, 0.0, 0.0),
             FacingDirection::Down => Vec3::new(0.0, -1.0, 0.0),
@@ -222,20 +222,22 @@ impl SnakeId {
     }
 }
 
-#[derive(Component, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Component, Clone, Copy, PartialEq, Eq, Default, strum_macros::EnumIter)]
 pub enum SnakeSize {
+    Tiny = 1,
     #[default]
-    Small,
-    Medium,
-    Large,
-    Colossal,
+    Small = 2,
+    Medium = 3,
+    Large = 4,
+    Colossal = 8,
 }
 
 impl AsRef<f32> for SnakeSize {
     fn as_ref(&self) -> &f32 {
         match self {
-            SnakeSize::Small => &WORLD_GRID_SIZE,
-            SnakeSize::Medium => &(WORLD_GRID_SIZE * 2.0),
+            SnakeSize::Tiny => &(WORLD_GRID_SIZE * 1.0),
+            SnakeSize::Small => &(WORLD_GRID_SIZE * 2.0),
+            SnakeSize::Medium => &(WORLD_GRID_SIZE * 3.0),
             SnakeSize::Large => &(WORLD_GRID_SIZE * 4.0),
             SnakeSize::Colossal => &(WORLD_GRID_SIZE * 8.0),
         }
@@ -253,6 +255,7 @@ impl Deref for SnakeSize {
 impl SnakeSize {
     pub fn up(&self) -> Self {
         match self {
+            SnakeSize::Tiny => SnakeSize::Small,
             SnakeSize::Small => SnakeSize::Medium,
             SnakeSize::Medium => SnakeSize::Large,
             SnakeSize::Large => SnakeSize::Colossal,
@@ -262,7 +265,8 @@ impl SnakeSize {
 
     pub fn down(&self) -> Self {
         match self {
-            SnakeSize::Small => SnakeSize::Small,
+            SnakeSize::Tiny => SnakeSize::Tiny,
+            SnakeSize::Small => SnakeSize::Tiny,
             SnakeSize::Medium => SnakeSize::Small,
             SnakeSize::Large => SnakeSize::Medium,
             SnakeSize::Colossal => SnakeSize::Large,
@@ -274,6 +278,24 @@ impl SnakeSize {
     }
     pub fn dec(&mut self) {
         *self = self.down();
+    }
+
+    pub fn stride(&self) -> usize {
+        match self {
+            SnakeSize::Tiny => 1,
+            SnakeSize::Small => 2,
+            SnakeSize::Medium => 3,
+            SnakeSize::Large => 4,
+            SnakeSize::Colossal => 8,
+        }
+    }
+
+    pub fn offset(&self) -> f32 {
+        if self.stride().is_multiple_of(2) {
+            WORLD_GRID_SIZE * 0.5
+        } else {
+            0.0
+        }
     }
 }
 

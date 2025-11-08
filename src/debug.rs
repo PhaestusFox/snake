@@ -1,3 +1,5 @@
+use strum::IntoEnumIterator;
+
 use crate::snake::{PlayerSnake, Snake, SnakeSize};
 
 use super::*;
@@ -15,6 +17,8 @@ impl Plugin for TestPowerPlugin {
                 change_snake_size,
             ),
         );
+
+        app.add_systems(Startup, draw_debug_square);
     }
 }
 
@@ -64,7 +68,6 @@ fn change_snake_size(
     mut snakes: Query<(&Children, &mut SnakeSize), With<PlayerSnake>>,
     mut segments: Query<&mut Transform>,
 ) {
-    let next: SnakeSize;
     let effect: fn(&mut SnakeSize);
     if input.just_pressed(KeyCode::PageUp) {
         effect = SnakeSize::inc;
@@ -104,5 +107,24 @@ fn change_snake_size(
             seg_transform.translation = new_origin + offset;
             seg_transform.translation.z = z;
         }
+    }
+}
+
+fn draw_debug_square(mut commands: Commands) {
+    for i in SnakeSize::iter() {
+        let size = i.as_ref() * 2.;
+
+        commands.spawn((
+            Sprite {
+                color: Color::hsl(360. / i.stride() as f32, 1., 0.5),
+                custom_size: Some(Vec2::splat(size)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(
+                i.offset() * 2.,
+                i.offset() * 2.,
+                -(i.stride() as f32),
+            )),
+        ));
     }
 }

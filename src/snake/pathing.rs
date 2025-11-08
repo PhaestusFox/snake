@@ -56,6 +56,7 @@ fn record_path(
 ) {
     if input.pressed(KeyCode::F7) {
         *new = Some(Vec::new());
+        println!("Started recording path");
         return;
     }
     let Some(path) = new.as_mut() else {
@@ -112,7 +113,6 @@ fn record_path(
     if len == 0 {
         path.push(*player.0);
     } else {
-        println!("Recorded path: {:?}", path);
         let mut new_snake = commands.spawn((
             player.1.clone(),
             PathFinding::FixedPath(new.take().unwrap()),

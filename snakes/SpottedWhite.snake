@@ -1,0 +1,7 @@
+id: SpottedWhite,
+body: {
+    head: "BattleSnake\snakes\32x32px_split\snake002.png",
+    curve: "BattleSnake\snakes\32x32px_split\snake000.png",
+    straight: "BattleSnake\snakes\32x32px_split\snake001.png",
+    tail: "BattleSnake\snakes\32x32px_split\snake015.png",
+}

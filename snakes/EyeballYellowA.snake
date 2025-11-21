@@ -1,0 +1,13 @@
+id: EyeballYellowA,
+body: {
+    head: "BattleSnake\snakes\32x32px_split\snake378.png",
+    curve: "BattleSnake\snakes\32x32px_split\snake382.png",
+    straight: "BattleSnake\snakes\32x32px_split\snake376.png",
+    tail: "BattleSnake\snakes\32x32px_split\snake380.png",
+},
+body: {
+    head: "BattleSnake\snakes\32x32px_split\snake379.png",
+    curve: "BattleSnake\snakes\32x32px_split\snake383.png",
+    straight: "BattleSnake\snakes\32x32px_split\snake377.png",
+    tail: "BattleSnake\snakes\32x32px_split\snake381.png",
+}

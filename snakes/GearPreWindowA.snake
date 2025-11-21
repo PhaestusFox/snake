@@ -1,0 +1,13 @@
+id: GearPreWindowA,
+body: {
+    head: "BattleSnake\snakes\32x32px_split\snake346.png",
+    curve: "BattleSnake\snakes\32x32px_split\snake340.png",
+    straight: "BattleSnake\snakes\32x32px_split\snake336.png",
+    tail: "BattleSnake\snakes\32x32px_split\snake342.png",
+},
+body: {
+    head: "BattleSnake\snakes\32x32px_split\snake347.png",
+    curve: "BattleSnake\snakes\32x32px_split\snake341.png",
+    straight: "BattleSnake\snakes\32x32px_split\snake337.png",
+    tail: "BattleSnake\snakes\32x32px_split\snake343.png",
+}

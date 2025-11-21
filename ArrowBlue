@@ -1,0 +1,7 @@
+id: ArrowBlue,
+body: {
+    head: "BattleSnake\snakes\32x32px_split\snake226.png",
+    curve: "BattleSnake\snakes\32x32px_split\snake224.png",
+    straight: "BattleSnake\snakes\32x32px_split\snake225.png",
+    tail: "BattleSnake\snakes\32x32px_split\snake239.png",
+}

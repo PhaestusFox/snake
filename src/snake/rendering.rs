@@ -19,7 +19,7 @@ impl Plugin for SnakeRenderPlugin {
                 FixedUpdate,
                 update_snake_shape.after(super::movement::move_snake),
             )
-            .add_systems(Update, update_snake_size);
+            .add_systems(Update, (update_snake_size, change_skin));
 
         app.init_resource::<AnimationTime>();
     }
@@ -399,5 +399,14 @@ impl SnakeFrame {
             SnakePiece::BodyCurve => self.body_curve.clone(),
             SnakePiece::Tail => self.tail.clone(),
         }
+    }
+}
+
+fn change_skin(
+    mut changed: Query<(&mut Snake, &SnakeId), Changed<SnakeId>>,
+    asset_server: Res<AssetServer>,
+) {
+    for (mut snake, snake_id) in &mut changed {
+        snake.snake_type = asset_server.load(*snake_id);
     }
 }

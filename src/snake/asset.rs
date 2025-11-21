@@ -65,8 +65,8 @@ pub enum SnakeAssetError {
     MismatchedBrackets(char, char),
     #[error("Unmatched closing bracket: `{0}`")]
     UnmatchedClosingBracket(char),
-    #[error("Block Missing {} '{0}'", if *.1 { "leading" } else { "trailing" })]
-    BlockNotWrappedIn(char, bool),
+    #[error("Block Missing {} '{bracket}'", if *is_starting { "starting" } else { "ending" })]
+    BlockNotWrappedIn { bracket: char, is_starting: bool },
 }
 
 impl SnakeLoader {
@@ -238,7 +238,13 @@ fn peel(res: &str, wrapping: char) -> Result<&str, SnakeAssetError> {
     let recp = brack_recp(wrapping);
     res.trim()
         .strip_prefix(wrapping)
-        .ok_or(SnakeAssetError::BlockNotWrappedIn(wrapping, true))?
+        .ok_or(SnakeAssetError::BlockNotWrappedIn {
+            bracket: wrapping,
+            is_starting: true,
+        })?
         .strip_suffix(recp)
-        .ok_or(SnakeAssetError::BlockNotWrappedIn(recp, false))
+        .ok_or(SnakeAssetError::BlockNotWrappedIn {
+            bracket: recp,
+            is_starting: false,
+        })
 }

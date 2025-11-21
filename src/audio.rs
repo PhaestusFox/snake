@@ -41,6 +41,7 @@ fn hiss_on_click(click: On<Pointer<Click>>, mut commands: Commands, hiss_sound: 
                 spatial_scale: Some(SpatialScale::new_2d(2.0)),
                 ..Default::default()
             },
+            Transform::from_translation(click.hit.position.unwrap_or(Vec3::ZERO)),
         ));
     }
 }

@@ -2,4 +2,5 @@
 Cargo.lock
 
 /assets
+!/assets/snakes
 !/assets/asset_credit

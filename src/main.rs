@@ -1,9 +1,4 @@
-use bevy::{
-    app::FixedMain,
-    asset::AssetPath,
-    prelude::*,
-    window::{CursorOptions, WindowResolution},
-};
+use bevy::{prelude::*, window::CursorOptions};
 
 use sneck::{
     collectables::SpawnFood,
@@ -57,10 +52,10 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn((Camera2d, Projection::Orthographic(projection)));
 }
 
-fn spawn_player_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_player_snake(mut commands: Commands) {
     commands
         .spawn((
-            snake::Snake::new(asset_server.load(snake::SnakeId::ArrowBlue)),
+            SnakeId::ArrowBlue,
             Transform::default(),
             FacingDirection::Right,
             snake::PlayerSnake,
@@ -80,12 +75,10 @@ fn spawn_player_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.trigger(SpawnFood::Random);
 }
 
-fn spawn_ai_snake(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let snake = asset_server.load(snake::SnakeId::ArrowBlue);
-
+fn spawn_ai_snake(mut commands: Commands) {
     commands
         .spawn((
-            snake::Snake::new(snake),
+            SnakeId::EyeballBlueA,
             Transform::default(),
             FacingDirection::Right,
             SnakeSize::Medium,
@@ -107,6 +100,7 @@ fn get_basic_window() -> Window {
         title: "Sneck".to_string(),
         resolution: utils::get_base_resolution(),
         resize_constraints: utils::get_window_constraints(),
+        resizable: false,
         #[cfg(feature = "stream_mode")]
         transparent: true,
         #[cfg(feature = "stream_mode")]

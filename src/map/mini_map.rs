@@ -54,8 +54,8 @@ fn spawn_mini_map(mut commands: Commands, mut images: ResMut<Assets<Image>>, map
             position_type: PositionType::Absolute,
             width: Val::VMin(25.),
             height: Val::VMin(25.),
-            min_height: Val::Px(map.size().y as f32 * 20.),
-            min_width: Val::Px(map.size().x as f32 * 20.),
+            min_height: Val::Px(map.size().y as f32),
+            min_width: Val::Px(map.size().x as f32),
             ..Default::default()
         },
         ImageNode {

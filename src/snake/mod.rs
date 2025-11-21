@@ -14,7 +14,7 @@ pub use input::PlayerSnake;
 
 use crate::GRID_SIZE;
 
-#[derive(Component, DerefMut, Deref, Clone)]
+#[derive(Component, DerefMut, Deref, Clone, Default)]
 #[require(Transform, Visibility, FacingDirection, SnakeSize)]
 pub struct Snake {
     #[deref]
@@ -192,7 +192,10 @@ impl SnakeSegment {
     Debug,
     strum_macros::FromRepr,
     strum_macros::IntoStaticStr,
+    Component,
 )]
+#[require(Snake)]
+#[component(on_insert = Self::on_add)]
 pub enum SnakeId {
     #[default]
     SpottedWhite = 0,
@@ -219,6 +222,17 @@ impl SnakeId {
             }
         }
         SnakeId::default()
+    }
+
+    fn on_add(mut world: DeferredWorld, ctx: HookContext) {
+        if let Some(snake_id) = world.get::<SnakeId>(ctx.entity).copied() {
+            let asset_server = world.resource::<AssetServer>();
+            let handle: Handle<SnakeType> = asset_server.load(snake_id);
+            let mut snake = world
+                .get_mut::<Snake>(ctx.entity)
+                .expect("SnakeId requires Snake component");
+            snake.snake_type = handle;
+        }
     }
 }
 

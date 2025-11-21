@@ -18,7 +18,7 @@ impl Map {
 impl FromWorld for Map {
     fn from_world(_world: &mut World) -> Self {
         Map {
-            size: UVec2::new(21, 21),
+            size: UVec2::new(100, 75),
         }
     }
 }

@@ -2,5 +2,4 @@
 Cargo.lock
 
 /assets
-!/assets/snakes
-!/assets/asset_credit
+!/assets/ArrowBlue.snake

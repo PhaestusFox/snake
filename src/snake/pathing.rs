@@ -21,7 +21,7 @@ fn apply_path(mut snakes: Populated<(&mut FacingDirection, &mut SnakePath), With
 #[derive(Component, Deref, DerefMut, Default)]
 struct SnakePath(Vec<FacingDirection>);
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 #[require(SnakePath)]
 pub enum PathFinding {
     FixedPath(Vec<FacingDirection>),

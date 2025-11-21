@@ -128,6 +128,7 @@ fn change_snake_size(
 }
 
 fn draw_debug_square(mut commands: Commands, map: Res<Map>) {
+    return;
     commands.spawn((
         Sprite {
             color: Color::WHITE,

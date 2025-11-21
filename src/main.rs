@@ -1,8 +1,9 @@
-use bevy::{prelude::*, window::CursorOptions};
+use bevy::{log::LogPlugin, prelude::*, window::CursorOptions};
 
 use sneck::{
     collectables::SpawnFood,
     snake::{FacingDirection, SnakeId, SnakeSize},
+    ui::OpenMenu,
     *,
 };
 
@@ -18,13 +19,21 @@ fn main() {
                 primary_window: Some(get_basic_window()),
                 primary_cursor_options: get_basic_cursor_options(),
                 ..Default::default()
+            })
+            .set(LogPlugin {
+                #[cfg(debug_assertions)]
+                filter: "wgpu=error,naga=warn,sneck=debug".to_string(),
+                ..Default::default()
             }),
     );
     app.insert_resource(ClearColor(Color::NONE));
 
     app.add_systems(Startup, spawn_camera);
 
-    app.add_systems(Startup, (spawn_player_snake, spawn_ai_snake));
+    app.add_systems(
+        OnEnter(OpenMenu::None),
+        (spawn_player_snake, spawn_ai_snake),
+    );
 
     app.insert_resource(Time::<Fixed>::from_hz(5.));
 
@@ -42,6 +51,8 @@ fn main() {
     app.add_plugins(utils::idk_qol_stuff);
 
     app.add_plugins(sneck::audio::AudioPlugin);
+    app.add_plugins(sneck::ui::UiPlugin);
+    app.add_plugins(sneck::SneckGame);
 
     app.run();
 }
@@ -53,18 +64,11 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn spawn_player_snake(mut commands: Commands) {
-    commands
-        .spawn((
-            SnakeId::ArrowBlue,
-            Transform::default(),
-            FacingDirection::Right,
-            snake::PlayerSnake,
-        ))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None));
+    commands.trigger(sneck::snake::SpawnSnake::new_player(
+        SnakeId::ArrowBlue,
+        5,
+        SnakeSize::Small,
+    ));
 
     commands.trigger(SpawnFood::Random);
     commands.trigger(SpawnFood::Random);
@@ -76,23 +80,17 @@ fn spawn_player_snake(mut commands: Commands) {
 }
 
 fn spawn_ai_snake(mut commands: Commands) {
-    commands
-        .spawn((
-            SnakeId::EyeballBlueA,
-            Transform::default(),
+    commands.trigger(sneck::snake::SpawnSnake::new(
+        SnakeId::ArrowBlue,
+        sneck::snake::SnakeBrain::PathFinding(sneck::snake::PathFinding::FixedPath(vec![
+            FacingDirection::Up,
+            FacingDirection::Left,
+            FacingDirection::Down,
             FacingDirection::Right,
-            SnakeSize::Medium,
-            snake::PathFinding::FixedPath(vec![
-                FacingDirection::Up,
-                FacingDirection::Left,
-                FacingDirection::Down,
-                FacingDirection::Right,
-            ]),
-        ))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None))
-        .with_child((snake::SnakeSegment, FacingDirection::None));
+        ])),
+        5,
+        SnakeSize::Small,
+    ));
 }
 
 fn get_basic_window() -> Window {

@@ -24,7 +24,7 @@ impl FromWorld for HissSound {
             asset_server.load("sounds/hiss3.wav"),
             asset_server.load("sounds/hiss4.wav"),
             asset_server.load("sounds/hiss5.wav"),
-            asset_server.load("sounds/hiss6.wav"),
+            // asset_server.load("sounds/hiss6.wav"),
         ])
     }
 }

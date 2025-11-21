@@ -6,10 +6,12 @@ use bevy::{
     sprite::Anchor,
 };
 
+mod events;
 mod input;
 mod movement;
 mod rendering;
 
+pub use events::{SnakeBrain, SpawnSegment, SpawnSnake};
 pub use input::PlayerSnake;
 
 use crate::GRID_SIZE;
@@ -65,6 +67,9 @@ impl Plugin for SnakePlugin {
         app.add_plugins(input::SnakeInputPlugin);
 
         app.add_plugins(pathing::plugin);
+
+        app.add_observer(events::spawn_snake);
+        app.add_observer(events::add_segment);
     }
 }
 
@@ -138,6 +143,7 @@ impl SnakeSegment {
                 }
             }
 
+            let p = world.get_entity(parent);
             // get the size of the snake from the parent, or fallback to global resource
             let size = **world
                 .get::<SnakeSize>(parent)

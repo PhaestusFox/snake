@@ -17,7 +17,7 @@ pub use input::PlayerSnake;
 use crate::GRID_SIZE;
 
 #[derive(Component, DerefMut, Deref, Clone, Default)]
-#[require(Transform, Visibility, FacingDirection, SnakeSize)]
+#[require(Transform, Visibility, FacingDirection, SnakeSize, SnakeId)]
 pub struct Snake {
     #[deref]
     pub snake_type: Handle<SnakeType>,
@@ -63,6 +63,7 @@ impl Plugin for SnakePlugin {
 
         app.init_asset_loader::<asset::SnakeLoader>();
         app.init_asset::<asset::SnakeType>();
+        app.init_resource::<SnakeSkins>();
 
         app.add_plugins(input::SnakeInputPlugin);
 
@@ -198,10 +199,11 @@ impl SnakeSegment {
     Debug,
     strum_macros::FromRepr,
     strum_macros::IntoStaticStr,
+    strum_macros::EnumCount,
     Component,
+    serde::Serialize,
+    serde::Deserialize,
 )]
-#[require(Snake)]
-#[component(on_insert = Self::on_add)]
 pub enum SnakeId {
     #[default]
     SpottedWhite = 0,
@@ -228,17 +230,6 @@ impl SnakeId {
             }
         }
         SnakeId::default()
-    }
-
-    fn on_add(mut world: DeferredWorld, ctx: HookContext) {
-        if let Some(snake_id) = world.get::<SnakeId>(ctx.entity).copied() {
-            let asset_server = world.resource::<AssetServer>();
-            let handle: Handle<SnakeType> = asset_server.load(snake_id);
-            let mut snake = world
-                .get_mut::<Snake>(ctx.entity)
-                .expect("SnakeId requires Snake component");
-            snake.snake_type = handle;
-        }
     }
 }
 
@@ -334,3 +325,42 @@ pub use asset::SnakeType;
 
 mod pathing;
 pub use pathing::PathFinding;
+
+#[derive(Resource, serde::Serialize, serde::Deserialize)]
+pub struct SnakeSkins {
+    active_skin: SnakeId,
+    unlocked_skins: Vec<SnakeId>,
+}
+
+impl SnakeSkins {
+    pub fn active_skin(&self) -> SnakeId {
+        self.active_skin
+    }
+
+    pub fn set_active_skin(&mut self, skin: SnakeId) {
+        if self.unlocked_skins.contains(&skin) {
+            self.active_skin = skin;
+            debug!("Active skin set to {:?}", skin);
+        } else {
+            warn!("Tried to set active skin to locked skin {:?}", skin);
+        }
+    }
+
+    pub fn unlocked(&self, skin: SnakeId) -> bool {
+        self.unlocked_skins.contains(&skin)
+    }
+}
+
+impl FromWorld for SnakeSkins {
+    fn from_world(world: &mut World) -> Self {
+        let pkv = world.resource::<bevy_pkv::PkvStore>();
+        if let Ok(data) = pkv.get::<SnakeSkins>(crate::PKVKeys::SnakeSkins) {
+            data
+        } else {
+            SnakeSkins {
+                active_skin: SnakeId::SpottedWhite,
+                unlocked_skins: vec![SnakeId::SpottedWhite],
+            }
+        }
+    }
+}

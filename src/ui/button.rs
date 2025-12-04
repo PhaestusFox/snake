@@ -1,6 +1,20 @@
 use bevy::ecs::system::SystemId;
 use bevy::feathers::rounded_corners::RoundedCorners;
 
+use bevy::{
+    feathers::{
+        constants::fonts,
+        cursor::EntityCursor,
+        font_styles::InheritableFont,
+        handle_or_path::HandleOrPath,
+        theme::{ThemeBackgroundColor, ThemeFontColor},
+        tokens,
+    },
+    input_focus::tab_navigation::TabIndex,
+    picking::hover::Hovered,
+    ui::{AlignItems, JustifyContent, Node, UiRect},
+};
+
 use super::*;
 
 pub struct ButtonPlugin;
@@ -20,147 +34,65 @@ fn fire_button_click(
         return;
     };
 
-    match trigger.button {
-        PointerButton::Primary if let Some(system) = button_actions.on_primary => {
-            commands.run_system(system);
+    let action = match trigger.button {
+        PointerButton::Primary => &button_actions.on_primary,
+        PointerButton::Middle => &button_actions.on_middle,
+        PointerButton::Secondary => &button_actions.on_secondary,
+    };
+
+    match action {
+        ButtonAction::None => {}
+        ButtonAction::Global(system_id) => {
+            commands.run_system(*system_id);
         }
-        PointerButton::Middle if let Some(system) = button_actions.on_middle => {
-            commands.run_system(system);
+        ButtonAction::Targeted(system_id) => {
+            commands.run_system_with(*system_id, trigger.entity);
         }
-        PointerButton::Secondary if let Some(system) = button_actions.on_secondary => {
-            commands.run_system(system);
-        }
-        _ => {}
     }
 }
 
 #[derive(Component, Default)]
 #[require(Button)]
 pub struct ButtonActions {
-    on_primary: Option<SystemId>,
-    on_middle: Option<SystemId>,
-    on_secondary: Option<SystemId>,
+    on_primary: ButtonAction,
+    on_middle: ButtonAction,
+    on_secondary: ButtonAction,
 }
 
 impl ButtonActions {
     pub fn new() -> Self {
         ButtonActions::default()
     }
-    pub fn with_primary(mut self, system: SystemId) -> Self {
-        self.on_primary = Some(system);
+    pub fn with_primary(mut self, action: impl Into<ButtonAction>) -> Self {
+        self.on_primary = action.into();
         self
     }
-    pub fn with_middle(mut self, system: SystemId) -> Self {
-        self.on_middle = Some(system);
+    pub fn with_middle(mut self, action: impl Into<ButtonAction>) -> Self {
+        self.on_middle = action.into();
         self
     }
-    pub fn with_secondary(mut self, system: SystemId) -> Self {
-        self.on_secondary = Some(system);
+    pub fn with_secondary(mut self, action: impl Into<ButtonAction>) -> Self {
+        self.on_secondary = action.into();
         self
     }
 }
 
-pub fn button<C: bevy::ecs::spawn::SpawnableList<ChildOf> + Send + Sync + 'static, B: Bundle>(
-    props: bevy::feathers::controls::ButtonProps,
-    overrides: B,
-    children: C,
-    actions: ButtonActions,
-) -> impl Bundle {
-    use bevy::{
-        feathers::{
-            constants::fonts,
-            cursor::EntityCursor,
-            font_styles::InheritableFont,
-            handle_or_path::HandleOrPath,
-            theme::{ThemeBackgroundColor, ThemeFontColor},
-            tokens,
-        },
-        input_focus::tab_navigation::TabIndex,
-        picking::hover::Hovered,
-        ui::{AlignItems, JustifyContent, Node, UiRect},
-    };
-    (
-        Node {
-            width: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            padding: UiRect::axes(Val::Px(8.0), Val::Px(0.)),
-            flex_grow: 1.0,
-            ..Default::default()
-        },
-        Button,
-        props.variant,
-        Hovered::default(),
-        EntityCursor::System(bevy::window::SystemCursorIcon::Pointer),
-        TabIndex(0),
-        to_border_radius(props.corners, Val::Vw(1.)),
-        ThemeBackgroundColor(tokens::BUTTON_BG),
-        ThemeFontColor(tokens::BUTTON_TEXT),
-        InheritableFont {
-            font: HandleOrPath::Path(fonts::REGULAR.to_owned()),
-            font_size: 14.0,
-        },
-        overrides,
-        Children::spawn(children),
-        actions,
-    )
+#[derive(Default)]
+pub enum ButtonAction {
+    #[default]
+    None,
+    Global(SystemId),
+    Targeted(SystemId<In<Entity>>),
 }
 
-// use bevy::feathers::controls::button;
+impl From<SystemId> for ButtonAction {
+    fn from(system_id: SystemId) -> Self {
+        ButtonAction::Global(system_id)
+    }
+}
 
-/// Convert the `RoundedCorners` to a `BorderRadius` for use in a `Node`.
-pub fn to_border_radius(corners: RoundedCorners, radius: Val) -> BorderRadius {
-    let zero = Val::ZERO;
-    match corners {
-        RoundedCorners::None => BorderRadius::all(zero),
-        RoundedCorners::All => BorderRadius::all(radius),
-        RoundedCorners::TopLeft => BorderRadius {
-            top_left: radius,
-            top_right: zero,
-            bottom_right: zero,
-            bottom_left: zero,
-        },
-        RoundedCorners::TopRight => BorderRadius {
-            top_left: zero,
-            top_right: radius,
-            bottom_right: zero,
-            bottom_left: zero,
-        },
-        RoundedCorners::BottomRight => BorderRadius {
-            top_left: zero,
-            top_right: zero,
-            bottom_right: radius,
-            bottom_left: zero,
-        },
-        RoundedCorners::BottomLeft => BorderRadius {
-            top_left: zero,
-            top_right: zero,
-            bottom_right: zero,
-            bottom_left: radius,
-        },
-        RoundedCorners::Top => BorderRadius {
-            top_left: radius,
-            top_right: radius,
-            bottom_right: zero,
-            bottom_left: zero,
-        },
-        RoundedCorners::Right => BorderRadius {
-            top_left: zero,
-            top_right: radius,
-            bottom_right: radius,
-            bottom_left: zero,
-        },
-        RoundedCorners::Bottom => BorderRadius {
-            top_left: zero,
-            top_right: zero,
-            bottom_right: radius,
-            bottom_left: radius,
-        },
-        RoundedCorners::Left => BorderRadius {
-            top_left: radius,
-            top_right: zero,
-            bottom_right: zero,
-            bottom_left: radius,
-        },
+impl From<SystemId<In<Entity>>> for ButtonAction {
+    fn from(system_id: SystemId<In<Entity>>) -> Self {
+        ButtonAction::Targeted(system_id)
     }
 }

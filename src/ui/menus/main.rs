@@ -1,8 +1,10 @@
+use crate::InGame;
+
 use super::*;
 use bevy::{
     ecs::system::SystemId,
     feathers::{
-        controls::{ButtonProps, ButtonVariant},
+        controls::{ButtonProps, ButtonVariant, button},
         *,
     },
 };
@@ -26,9 +28,12 @@ struct MainMenuActions {
 impl FromWorld for MainMenuActions {
     fn from_world(world: &mut World) -> Self {
         Self {
-            start_game: world.register_system(|mut state: ResMut<NextState<OpenMenu>>| {
-                state.set(OpenMenu::None);
-            }),
+            start_game: world.register_system(
+                |mut state: ResMut<NextState<OpenMenu>>, mut commands: Commands| {
+                    state.set(OpenMenu::None);
+                    commands.insert_resource(InGame);
+                },
+            ),
             open_settings: world.register_system(|mut state: ResMut<NextState<OpenMenu>>| {
                 state.set(OpenMenu::Settings);
             }),
@@ -49,7 +54,8 @@ fn spawn_main_menu(mut commands: Commands, actions: Res<MainMenuActions>) {
                 width: Val::Vw(100. / 3.),
                 height: Val::Vh(300. / 5.),
                 justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
+                align_content: AlignContent::Stretch,
+                flex_wrap: FlexWrap::Wrap,
                 flex_direction: FlexDirection::Column,
                 margin: UiRect::all(Val::Auto),
                 ..default_menu_node()
@@ -64,9 +70,8 @@ fn spawn_main_menu(mut commands: Commands, actions: Res<MainMenuActions>) {
                 variant: ButtonVariant::Primary,
                 corners: rounded_corners::RoundedCorners::Top,
             },
-            (),
-            Spawn((Text::from("Start Game"),)),
             ButtonActions::new().with_primary(actions.start_game),
+            Spawn(Text::from("Start Game")),
         ))
         // add button to open settings
         .with_child(button(
@@ -74,9 +79,8 @@ fn spawn_main_menu(mut commands: Commands, actions: Res<MainMenuActions>) {
                 variant: ButtonVariant::Normal,
                 corners: rounded_corners::RoundedCorners::None,
             },
-            (),
-            Spawn((Text::from("Settings"),)),
             ButtonActions::new().with_primary(actions.open_settings),
+            Spawn(Text::from("Settings")),
         ))
         // add button to quit game
         .with_child(button(
@@ -84,8 +88,7 @@ fn spawn_main_menu(mut commands: Commands, actions: Res<MainMenuActions>) {
                 variant: ButtonVariant::Normal,
                 corners: rounded_corners::RoundedCorners::Bottom,
             },
-            (),
-            Spawn((Text::from("Quit"),)),
             ButtonActions::new().with_primary(actions.quit_game),
+            Spawn(Text::from("Quit")),
         ));
 }

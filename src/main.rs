@@ -26,6 +26,7 @@ fn main() {
                 ..Default::default()
             }),
     );
+    app.insert_resource(bevy_pkv::PkvStore::new("PhoxGames", "Sneck"));
     app.insert_resource(ClearColor(Color::NONE));
 
     app.add_systems(Startup, spawn_camera);
@@ -63,9 +64,9 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn((Camera2d, Projection::Orthographic(projection)));
 }
 
-fn spawn_player_snake(mut commands: Commands) {
+fn spawn_player_snake(mut commands: Commands, snake_skins: Res<sneck::snake::SnakeSkins>) {
     commands.trigger(sneck::snake::SpawnSnake::new_player(
-        SnakeId::ArrowBlue,
+        snake_skins.active_skin(),
         5,
         SnakeSize::Small,
     ));

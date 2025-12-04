@@ -30,8 +30,17 @@ impl SpawnSnake {
     }
 }
 
-pub fn spawn_snake(trigger: On<SpawnSnake>, mut commands: Commands) {
-    let mut snake = commands.spawn((trigger.skin, trigger.size, trigger.facing));
+pub fn spawn_snake(
+    trigger: On<SpawnSnake>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    let mut snake = commands.spawn((
+        Snake::new(asset_server.load(trigger.skin)),
+        trigger.skin,
+        trigger.size,
+        trigger.facing,
+    ));
     match &trigger.brain {
         SnakeBrain::PathFinding(path_finding) => {
             snake.insert(path_finding.clone());

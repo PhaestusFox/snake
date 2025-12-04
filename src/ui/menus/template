@@ -7,12 +7,12 @@ use bevy::{
     },
 };
 
-pub struct PauseMenu;
+pub struct SettingsMenu;
 
-impl Plugin for PauseMenu {
+impl Plugin for SettingsMenu {
     fn build(&self, app: &mut App) {
         app.init_resource::<MenuActions>()
-            .add_systems(OnEnter(OpenMenu::Pause), spawn_menu);
+            .add_systems(OnEnter(OpenMenu::Main), spawn_menu);
     }
 }
 
@@ -26,9 +26,9 @@ impl FromWorld for MenuActions {
 }
 
 fn spawn_menu(mut commands: Commands, actions: Res<MenuActions>) {
-    debug!("Opening Pause Menu");
+    debug!("Opening Main Menu");
     // Spawn menu container
-    // this will be scoped to the OpenMenu::Pause state
+    // this will be scoped to the OpenMenu::Main state
     // commands
     //     .spawn((
     //         Node {

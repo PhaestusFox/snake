@@ -45,3 +45,12 @@ fn unfreeze_time(mut time: ResMut<Time<Virtual>>) {
     debug!("unfreezing time");
     time.unpause();
 }
+
+#[derive(Resource)]
+pub struct InGame;
+
+#[derive(strum_macros::AsRefStr)]
+enum PKVKeys {
+    HighScore,
+    SnakeSkins,
+}
